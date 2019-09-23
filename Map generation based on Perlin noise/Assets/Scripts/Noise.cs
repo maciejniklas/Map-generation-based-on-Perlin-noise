@@ -24,7 +24,7 @@ public static class Noise
     };
     private static int permutationsMask = permutations.Length - 1;
 
-    public static float Value(Vector3 point, float frequency)
+    public static float Value1D(Vector3 point, float frequency)
     {
         point *= frequency;
 
@@ -32,6 +32,21 @@ public static class Noise
         index &= permutationsMask;
 
         float value = permutations[index] / (float)permutationsMask;
+
+        return value;
+    }
+
+    public static float Value2D(Vector3 point, float frequency)
+    {
+        point *= frequency;
+
+        int indexX = Mathf.FloorToInt(point.x);
+        int indexY = Mathf.FloorToInt(point.y);
+
+        indexX &= permutationsMask;
+        indexY &= permutationsMask;
+
+        float value = permutations[(permutations[indexX] + indexY) & permutationsMask] / (float)permutationsMask;
 
         return value;
     }

@@ -57,7 +57,7 @@ public class TextureGenerator : MonoBehaviour
             {
                 Vector3 point = Vector3.Lerp(interpolation0, interpolation1, (xIndex + 0.5f) * stepSize);
 
-                texture.SetPixel(xIndex, yIndex, Color.white * Noise.Value(point, frequency));
+                texture.SetPixel(xIndex, yIndex, Color.white * Noise.Value2D(point, frequency));
             }
         }
 
