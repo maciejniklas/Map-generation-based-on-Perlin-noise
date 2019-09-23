@@ -2,8 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public delegate float NoiseGenerator(Vector3 point, float frequency);
+
 public static class Noise
 {
+    public static NoiseGenerator[] valueNoise = { Value1D, Value2D };
+
     private static int[] permutations = {
         151,160,137, 91, 90, 15,131, 13,201, 95, 96, 53,194,233,  7,225,
         140, 36,103, 30, 69,142,  8, 99, 37,240, 21, 10, 23,190,  6,148,
@@ -24,14 +28,29 @@ public static class Noise
     };
     private static int permutationsMask = permutations.Length - 1;
 
+    private static float Smooth(float value)
+    {
+        return value * value * value * (value * (value * 6f - 15f) + 10f);
+    }
+
     public static float Value1D(Vector3 point, float frequency)
     {
         point *= frequency;
 
-        int index = Mathf.FloorToInt(point.x);
-        index &= permutationsMask;
+        // To interpolate noise values I have to compute lattice coordinates to the left and right of our sample point
+        int leftIndex = Mathf.FloorToInt(point.x);
+        float fractional = point.x - leftIndex;
+        leftIndex &= permutationsMask;
 
-        float value = permutations[index] / (float)permutationsMask;
+        int rightIndex = leftIndex + 1;
+        rightIndex &= permutationsMask;
+
+        int leftHash = permutations[leftIndex];
+        int rightHash = permutations[rightIndex];
+
+        fractional = Smooth(fractional);
+
+        float value = Mathf.Lerp(leftHash, rightHash, fractional) / (float)permutationsMask;
 
         return value;
     }
@@ -40,13 +59,36 @@ public static class Noise
     {
         point *= frequency;
 
-        int indexX = Mathf.FloorToInt(point.x);
-        int indexY = Mathf.FloorToInt(point.y);
+        int leftIndexX = Mathf.FloorToInt(point.x);
+        int leftIndexY = Mathf.FloorToInt(point.y);
 
-        indexX &= permutationsMask;
-        indexY &= permutationsMask;
+        float fractionalX = point.x - leftIndexX;
+        float fractionalY = point.y - leftIndexY;
 
-        float value = permutations[(permutations[indexX] + indexY) & permutationsMask] / (float)permutationsMask;
+        leftIndexX &= permutationsMask;
+        leftIndexY &= permutationsMask;
+
+        int rightIndexX = leftIndexX + 1;
+        int rightIndexY = leftIndexY + 1;
+
+        rightIndexX &= permutationsMask;
+        rightIndexY &= permutationsMask;
+
+        int leftHash = permutations[leftIndexX];
+        int rightHash = permutations[rightIndexX];
+        int bottomLeftHash = permutations[(permutations[leftHash] + leftIndexY) & permutationsMask];
+        int bottomRightHash = permutations[(permutations[rightHash] + leftIndexY) & permutationsMask];
+        int topLeftHash = permutations[(permutations[leftHash] + rightIndexY) & permutationsMask];
+        int topRightHash = permutations[(permutations[rightHash] + rightIndexY) & permutationsMask];
+
+        fractionalX = Smooth(fractionalX);
+        fractionalY = Smooth(fractionalY);
+
+        float value = Mathf.Lerp(
+            Mathf.Lerp(bottomLeftHash, bottomRightHash, fractionalX),
+            Mathf.Lerp(topLeftHash, topRightHash, fractionalX),
+            fractionalY
+            ) / (float)permutationsMask;
 
         return value;
     }

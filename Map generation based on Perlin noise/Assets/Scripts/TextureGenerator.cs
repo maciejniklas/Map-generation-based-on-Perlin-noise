@@ -6,6 +6,7 @@ public class TextureGenerator : MonoBehaviour
 {
     [Range(2, 512)] public int resolution = 256;
     public float frequency = 10f;
+    [Range(1, 2)] public int dimension = 2;
 
     private Texture2D texture;
 
@@ -46,6 +47,8 @@ public class TextureGenerator : MonoBehaviour
         Vector3 corner01 = transform.TransformPoint(new Vector3(-0.5f, 0.5f));
         Vector3 corner11 = transform.TransformPoint(new Vector3(0.5f, 0.5f));
 
+        NoiseGenerator generator = Noise.valueNoise[dimension - 1];
+
         float stepSize = 1f / resolution;
 
         // To compute the colors at the center of the pixels I have to add a half one to achieve this
@@ -57,7 +60,7 @@ public class TextureGenerator : MonoBehaviour
             {
                 Vector3 point = Vector3.Lerp(interpolation0, interpolation1, (xIndex + 0.5f) * stepSize);
 
-                texture.SetPixel(xIndex, yIndex, Color.white * Noise.Value2D(point, frequency));
+                texture.SetPixel(xIndex, yIndex, Color.white * generator(point, frequency));
             }
         }
 
