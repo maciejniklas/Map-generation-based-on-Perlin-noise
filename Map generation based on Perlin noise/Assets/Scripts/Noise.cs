@@ -4,9 +4,28 @@ using UnityEngine;
 
 public delegate float NoiseGenerator(Vector3 point, float frequency);
 
+public enum NoiseType { Value, Perlin }
+
 public static class Noise
 {
+    public static NoiseGenerator[] perlinNoise = { Perlin1D, Perlin2D };
     public static NoiseGenerator[] valueNoise = { Value1D, Value2D };
+    public static NoiseGenerator[][] noiseType = { valueNoise, perlinNoise };
+
+    private static float[] gradients1D = { 1f, -1f };
+    private static int gradients1DMask = gradients1D.Length - 1;
+
+    private static Vector2[] gradients2D = {
+        new Vector2( 1f, 0f),
+        new Vector2(-1f, 0f),
+        new Vector2( 0f, 1f),
+        new Vector2( 0f,-1f),
+        new Vector2( 1f, 1f).normalized,
+        new Vector2(-1f, 1f).normalized,
+        new Vector2( 1f,-1f).normalized,
+        new Vector2(-1f,-1f).normalized
+    };
+    private static int gradients2DMask = gradients2D.Length - 1;
 
     private static int[] permutations = {
         151,160,137, 91, 90, 15,131, 13,201, 95, 96, 53,194,233,  7,225,
@@ -27,6 +46,87 @@ public static class Noise
         222,114, 67, 29, 24, 72,243,141,128,195, 78, 66,215, 61,156,180
     };
     private static int permutationsMask = permutations.Length - 1;
+
+    private static float DotProduct(Vector2 gradient, float x, float y)
+    {
+        return gradient.x * x + gradient.y * y;
+    }
+
+    public static float Perlin1D(Vector3 point, float frequency)
+    {
+        point *= frequency;
+
+        int leftIndex = Mathf.FloorToInt(point.x);
+
+        float leftFractional = point.x - leftIndex;
+        float rightFractional = leftFractional - 1;
+
+        leftIndex &= permutationsMask;
+
+        int rightIndex = leftIndex + 1;
+        rightIndex &= permutationsMask;
+
+        float leftGradient = gradients1D[permutations[leftIndex] & gradients1DMask];
+        float rightGradient = gradients1D[permutations[rightIndex] & gradients1DMask];
+
+        float leftGradientValue = leftGradient * leftFractional;
+        float rightGradientValue = rightGradient * rightFractional;
+
+        float fractional = Smooth(leftFractional);
+
+        // If we want interpolate two gradients in opposite directions the maximum value is 0.5, so I have to multiply the result by 2
+        float value = Mathf.Lerp(leftGradientValue, rightGradientValue, fractional) * 2f; ;
+
+        return value;
+    }
+
+    public static float Perlin2D(Vector3 point, float frequency)
+    {
+        point *= frequency;
+
+        int leftIndexX = Mathf.FloorToInt(point.x);
+        int leftIndexY = Mathf.FloorToInt(point.y);
+
+        float leftFractionalX = point.x - leftIndexX;
+        float leftFractionalY = point.y - leftIndexY;
+
+        float rightFractionalX = leftFractionalX - 1;
+        float rightFractionalY = leftFractionalY - 1;
+
+        leftIndexX &= permutationsMask;
+        leftIndexY &= permutationsMask;
+
+        int rightIndexX = leftIndexX + 1;
+        int rightIndexY = leftIndexY + 1;
+
+        rightIndexX &= permutationsMask;
+        rightIndexY &= permutationsMask;
+
+        int leftHash = permutations[leftIndexX];
+        int rightHash = permutations[rightIndexX];
+        
+        Vector2 bottomLeftGradient = gradients2D[permutations[(leftHash + leftIndexY) & permutationsMask] & gradients2DMask];
+        Vector2 bottomRightGradient = gradients2D[permutations[(rightHash + leftIndexY) & permutationsMask] & gradients2DMask];
+        Vector2 topLeftGradient = gradients2D[permutations[(leftHash + rightIndexY) & permutationsMask] & gradients2DMask];
+        Vector2 topRightGradient = gradients2D[permutations[(rightHash + rightIndexY) & permutationsMask] & gradients2DMask];
+        
+        float bottomLeftGradientValue = DotProduct(bottomLeftGradient, leftFractionalX, leftFractionalY);
+        float bottomRightGradientValue = DotProduct(bottomRightGradient, rightFractionalX, leftFractionalY);
+        float topLeftGradientValue = DotProduct(topLeftGradient, leftFractionalX, rightFractionalY);
+        float topRightGradientValue = DotProduct(topRightGradient, rightFractionalX, rightFractionalY);
+
+        float fractionalX = Smooth(leftFractionalX);
+        float fractionalY = Smooth(leftFractionalY);
+        
+        // In this case maximum value is no 1 but sqrt(0.5) because of four diagonal gradients pointing at center of the cell
+        float value = Mathf.Lerp(
+            Mathf.Lerp(bottomLeftGradientValue, bottomRightGradientValue, fractionalX),
+            Mathf.Lerp(topLeftGradientValue, topRightGradientValue, fractionalX),
+            fractionalY
+            ) * Mathf.Sqrt(2);
+            
+        return value;
+    }
 
     private static float Smooth(float value)
     {
@@ -76,10 +176,11 @@ public static class Noise
 
         int leftHash = permutations[leftIndexX];
         int rightHash = permutations[rightIndexX];
-        int bottomLeftHash = permutations[(permutations[leftHash] + leftIndexY) & permutationsMask];
-        int bottomRightHash = permutations[(permutations[rightHash] + leftIndexY) & permutationsMask];
-        int topLeftHash = permutations[(permutations[leftHash] + rightIndexY) & permutationsMask];
-        int topRightHash = permutations[(permutations[rightHash] + rightIndexY) & permutationsMask];
+
+        int bottomLeftHash = permutations[(leftHash + leftIndexY) & permutationsMask];
+        int bottomRightHash = permutations[(rightHash + leftIndexY) & permutationsMask];
+        int topLeftHash = permutations[(leftHash + rightIndexY) & permutationsMask];
+        int topRightHash = permutations[(rightHash + rightIndexY) & permutationsMask];
 
         fractionalX = Smooth(fractionalX);
         fractionalY = Smooth(fractionalY);

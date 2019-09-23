@@ -5,6 +5,8 @@ using UnityEngine;
 public class TextureGenerator : MonoBehaviour
 {
     [Range(2, 512)] public int resolution = 256;
+
+    public NoiseType type;
     public float frequency = 10f;
     [Range(1, 2)] public int dimension = 2;
 
@@ -47,7 +49,7 @@ public class TextureGenerator : MonoBehaviour
         Vector3 corner01 = transform.TransformPoint(new Vector3(-0.5f, 0.5f));
         Vector3 corner11 = transform.TransformPoint(new Vector3(0.5f, 0.5f));
 
-        NoiseGenerator generator = Noise.valueNoise[dimension - 1];
+        NoiseGenerator generator = Noise.noiseType[(int)type][dimension - 1];
 
         float stepSize = 1f / resolution;
 
@@ -60,7 +62,10 @@ public class TextureGenerator : MonoBehaviour
             {
                 Vector3 point = Vector3.Lerp(interpolation0, interpolation1, (xIndex + 0.5f) * stepSize);
 
-                texture.SetPixel(xIndex, yIndex, Color.white * generator(point, frequency));
+                float value = generator(point, frequency);
+                value = type == NoiseType.Perlin ? value * 0.5f + 0.5f : value;
+
+                texture.SetPixel(xIndex, yIndex, Color.white * value);
             }
         }
 
