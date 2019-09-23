@@ -1,9 +1,9 @@
-Library/*
-Logs/*
-Packages/*
-Temp/*
-.vs/*
-obj/*
+*/Library/*
+*/Logs/*
+*/Packages/*
+*/Temp/*
+*/.vs/*
+*/obj/*
 
 *.csproj
 *.sln
