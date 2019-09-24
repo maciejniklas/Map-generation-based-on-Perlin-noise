@@ -4,13 +4,20 @@ using UnityEngine;
 
 public class MapHandler : MonoBehaviour
 {
-    public Renderer renderer;
+    public Renderer textureRenderer;
+    public MeshFilter meshFilter;
+    public MeshRenderer meshRenderer;
 
     public void DisplayMap(Texture2D texture)
     {
-
         // To avoid clicking Play button all the time I could apply the texture to the shared material to see effect in the editor
-        renderer.sharedMaterial.mainTexture = texture;
-        renderer.transform.localScale = new Vector3(texture.width , 1, texture.height);
+        textureRenderer.sharedMaterial.mainTexture = texture;
+        textureRenderer.transform.localScale = new Vector3(texture.width , 1, texture.height);
+    }
+
+    public void DisplayMesh(MeshDetails meshDetails, Texture2D texture)
+    {
+        meshFilter.sharedMesh = meshDetails.BuildMesh();
+        meshRenderer.sharedMaterial.mainTexture = texture;
     }
 }

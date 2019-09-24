@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MapController : MonoBehaviour
 {
-    public enum DisplayMode { Noise, Color };
+    public enum DisplayMode { Noise, Color, Mesh };
 
     [Range(2, 512)]   public int resolution;
     public float scale;
@@ -59,6 +59,10 @@ public class MapController : MonoBehaviour
         else if(displayMode == DisplayMode.Color)
         {
             handler.DisplayMap(TextureController.GenerateFromColors(mapColors, resolution));
+        }
+        else if(displayMode == DisplayMode.Mesh)
+        {
+            handler.DisplayMesh(MeshController.GenerateMesh(noiseArea), TextureController.GenerateFromColors(mapColors, resolution));
         }
     }
 }
