@@ -52,25 +52,65 @@ public static class Noise
         return gradient.x * x + gradient.y * y;
     }
 
-    public static float[,] GenerateNoiseArea(int resolution, float scale, NoiseType type, int dimension)
+    public static float[,] GenerateNoiseArea(int resolution, float scale, NoiseType type, int dimension, int octaves, float persistance, float lacunarity, int seed, Vector3 offset)
     {
         float[,] noiseArea = new float[resolution, resolution];
+        NoiseGenerator generator = noiseType[(int)type][dimension - 1];
+        System.Random random = new System.Random(seed);
+        Vector3[] octaveOffsets = new Vector3[octaves];
+
+        for (int octaveIndex = 0; octaveIndex < octaves; octaveIndex++)
+        {
+            octaveOffsets[octaveIndex] = new Vector3(random.Next(-1000000, 100000), random.Next(-1000000, 100000)) + offset;
+        }
 
         scale = scale <= 0 ? 0.001f : scale;
+
+        float minHeight = float.MaxValue;
+        float maxHeight = float.MinValue;
 
         for(int yIndex = 0; yIndex < resolution; yIndex++)
         {
             for(int xIndex = 0; xIndex < resolution; xIndex++)
             {
-                Vector3 point = new Vector3(xIndex, yIndex);
-                point /= scale;
+                float amplitude = 1f;
+                float frequency = 1f;
+                float height = 0f;
 
-                NoiseGenerator generator = noiseType[(int)type][dimension - 1];
+                for(int octaveIndex = 0; octaveIndex < octaves; octaveIndex++)
+                {
+                    Vector3 point = new Vector3(xIndex, yIndex);
+                    point.x -= resolution / 2;
+                    point.y -= resolution / 2;
+                    point /= scale;
+                    point *= frequency;
+                    point += octaveOffsets[octaveIndex];
 
-                float value = generator(point);
-                value = type == NoiseType.Perlin ? value * 0.5f + 0.5f : value;
-                //Mathf.PerlinNoise(point.x, point.y);
-                noiseArea[xIndex, yIndex] = value;
+                    float value = generator(point);
+
+                    height += value * amplitude;
+                    amplitude *= persistance;
+                    frequency *= lacunarity;
+                }
+
+                if(height > maxHeight)
+                {
+                    maxHeight = height;
+                }
+                else if (height < minHeight)
+                {
+                    minHeight = height;
+                }
+
+                noiseArea[xIndex, yIndex] = height;
+            }
+        }
+
+        for (int yIndex = 0; yIndex < resolution; yIndex++)
+        {
+            for (int xIndex = 0; xIndex < resolution; xIndex++)
+            {
+                noiseArea[xIndex, yIndex] = Mathf.InverseLerp(minHeight, maxHeight, noiseArea[xIndex, yIndex]);
             }
         }
 
@@ -145,7 +185,7 @@ public static class Noise
             Mathf.Lerp(topLeftGradientValue, topRightGradientValue, fractionalX),
             fractionalY
             ) * Mathf.Sqrt(2);
-            
+
         return value;
     }
 
