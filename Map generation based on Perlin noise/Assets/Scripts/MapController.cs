@@ -6,7 +6,8 @@ public class MapController : MonoBehaviour
 {
     public enum DisplayMode { Noise, Color, Mesh };
 
-    [Range(2, 512)]   public int resolution;
+    private const int resolution = 241;
+
     public float scale;
     public NoiseType type;
     [Range(1, 2)] public int dimension = 2;
@@ -19,6 +20,12 @@ public class MapController : MonoBehaviour
     public float lacunarity;
     public int seed;
     public Vector3 offset;
+
+    [Space(10)]
+
+    public float heightMultiplier;
+    public AnimationCurve curve;
+    [Range(0, 6)] public int levelOfDetails = 1;
 
     [Space(10)]
 
@@ -62,7 +69,7 @@ public class MapController : MonoBehaviour
         }
         else if(displayMode == DisplayMode.Mesh)
         {
-            handler.DisplayMesh(MeshController.GenerateMesh(noiseArea), TextureController.GenerateFromColors(mapColors, resolution));
+            handler.DisplayMesh(MeshController.GenerateMesh(noiseArea, heightMultiplier, curve, levelOfDetails), TextureController.GenerateFromColors(mapColors, resolution));
         }
     }
 }

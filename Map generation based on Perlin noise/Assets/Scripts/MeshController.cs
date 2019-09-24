@@ -4,25 +4,27 @@ using UnityEngine;
 
 public static class MeshController
 {
-    public static MeshDetails GenerateMesh(float[,] noiseArea)
+    public static MeshDetails GenerateMesh(float[,] noiseArea, float multiplier, AnimationCurve curve, int lod)
     {
         int resolution = noiseArea.GetLength(0);
         float topLeftX = (resolution - 1) / -2f;
         float topLeftZ = (resolution - 1) / 2f;
+        int lodIncrement = lod == 0 ? 1 : lod * 2;
+        int verticesInRow = (resolution - 1) / lodIncrement + 1;
         MeshDetails meshDetails = new MeshDetails(resolution);
         int currentVertexIndex = 0;
 
-        for(int yIndex = 0; yIndex < resolution; yIndex++)
+        for(int yIndex = 0; yIndex < resolution; yIndex += lodIncrement)
         {
-            for(int xIndex = 0; xIndex < resolution; xIndex++)
+            for(int xIndex = 0; xIndex < resolution; xIndex += lodIncrement)
             {
-                meshDetails.vertices[currentVertexIndex] = new Vector3(topLeftX + xIndex, noiseArea[xIndex, yIndex], topLeftZ - yIndex);
+                meshDetails.vertices[currentVertexIndex] = new Vector3(topLeftX + xIndex, curve.Evaluate(noiseArea[xIndex, yIndex]) * multiplier, topLeftZ - yIndex);
                 meshDetails.uvs[currentVertexIndex] = new Vector2(xIndex / (float)resolution, yIndex / (float)resolution);
 
                 if(xIndex < resolution - 1 && yIndex < resolution - 1)
                 {
-                    meshDetails.AddTriangle(currentVertexIndex, currentVertexIndex + resolution + 1, currentVertexIndex + resolution);
-                    meshDetails.AddTriangle(currentVertexIndex + resolution + 1, currentVertexIndex, currentVertexIndex + 1);
+                    meshDetails.AddTriangle(currentVertexIndex, currentVertexIndex + verticesInRow + 1, currentVertexIndex + verticesInRow);
+                    meshDetails.AddTriangle(currentVertexIndex + verticesInRow + 1, currentVertexIndex, currentVertexIndex + 1);
                 }
 
                 currentVertexIndex++;
