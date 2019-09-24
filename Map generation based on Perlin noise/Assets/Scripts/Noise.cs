@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public delegate float NoiseGenerator(Vector3 point, float frequency);
+public delegate float NoiseGenerator(Vector3 point);
 
 public enum NoiseType { Value, Perlin }
 
@@ -52,10 +52,33 @@ public static class Noise
         return gradient.x * x + gradient.y * y;
     }
 
-    public static float Perlin1D(Vector3 point, float frequency)
+    public static float[,] GenerateNoiseArea(int resolution, float scale, NoiseType type, int dimension)
     {
-        point *= frequency;
+        float[,] noiseArea = new float[resolution, resolution];
 
+        scale = scale <= 0 ? 0.001f : scale;
+
+        for(int yIndex = 0; yIndex < resolution; yIndex++)
+        {
+            for(int xIndex = 0; xIndex < resolution; xIndex++)
+            {
+                Vector3 point = new Vector3(xIndex, yIndex);
+                point /= scale;
+
+                NoiseGenerator generator = noiseType[(int)type][dimension - 1];
+
+                float value = generator(point);
+                value = type == NoiseType.Perlin ? value * 0.5f + 0.5f : value;
+                //Mathf.PerlinNoise(point.x, point.y);
+                noiseArea[xIndex, yIndex] = value;
+            }
+        }
+
+        return noiseArea;
+    }
+
+    public static float Perlin1D(Vector3 point)
+    {
         int leftIndex = Mathf.FloorToInt(point.x);
 
         float leftFractional = point.x - leftIndex;
@@ -80,10 +103,8 @@ public static class Noise
         return value;
     }
 
-    public static float Perlin2D(Vector3 point, float frequency)
+    public static float Perlin2D(Vector3 point)
     {
-        point *= frequency;
-
         int leftIndexX = Mathf.FloorToInt(point.x);
         int leftIndexY = Mathf.FloorToInt(point.y);
 
@@ -133,10 +154,8 @@ public static class Noise
         return value * value * value * (value * (value * 6f - 15f) + 10f);
     }
 
-    public static float Value1D(Vector3 point, float frequency)
+    public static float Value1D(Vector3 point)
     {
-        point *= frequency;
-
         // To interpolate noise values I have to compute lattice coordinates to the left and right of our sample point
         int leftIndex = Mathf.FloorToInt(point.x);
         float fractional = point.x - leftIndex;
@@ -155,10 +174,8 @@ public static class Noise
         return value;
     }
 
-    public static float Value2D(Vector3 point, float frequency)
+    public static float Value2D(Vector3 point)
     {
-        point *= frequency;
-
         int leftIndexX = Mathf.FloorToInt(point.x);
         int leftIndexY = Mathf.FloorToInt(point.y);
 
