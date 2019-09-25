@@ -27,7 +27,7 @@ public class MapController : MonoBehaviour
 
     public float heightMultiplier;
     public AnimationCurve curve;
-    [Range(0, 6)] public int levelOfDetails = 1;
+    [Range(0, 6)] public int previevLOD = 1;
 
     [Space(10)]
 
@@ -61,9 +61,9 @@ public class MapController : MonoBehaviour
         }
     }
 
-    private MapDetails BuildMapDetails()
+    private MapDetails BuildMapDetails(Vector2 center)
     {
-        float[,] noiseArea = Noise.GenerateNoiseArea(resolution, scale, type, dimension, octaves, perisstance, lacunarity, seed, offset);
+        float[,] noiseArea = Noise.GenerateNoiseArea(resolution, scale, type, dimension, octaves, perisstance, lacunarity, seed, new Vector3(center.x, center.y) + offset);
         Color[] mapColors = new Color[resolution * resolution];
 
         for(int yIndex = 0; yIndex < resolution; yIndex++)
@@ -89,7 +89,7 @@ public class MapController : MonoBehaviour
     public void DisplayInEditor()
     {
         MapHandler handler = FindObjectOfType<MapHandler>();
-        MapDetails mapDetails = BuildMapDetails();
+        MapDetails mapDetails = BuildMapDetails(Vector2.zero);
 
         if (displayMode == DisplayMode.Noise)
         {
@@ -101,13 +101,13 @@ public class MapController : MonoBehaviour
         }
         else if (displayMode == DisplayMode.Mesh)
         {
-            handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, levelOfDetails), TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
+            handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, previevLOD), TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
         }
     }
 
-    private void MapDetailsThread(Action<MapDetails> callback)
+    private void MapDetailsThread(Action<MapDetails> callback, Vector2 center)
     {
-        MapDetails mapDetails = BuildMapDetails();
+        MapDetails mapDetails = BuildMapDetails(center);
 
         lock(mapThreadCollection)
         {
@@ -115,9 +115,9 @@ public class MapController : MonoBehaviour
         }
     }
 
-    private void MeshDetailsThread(Action<MeshDetails> callback, MapDetails mapDetails)
+    private void MeshDetailsThread(Action<MeshDetails> callback, MapDetails mapDetails, int lod)
     {
-        MeshDetails meshDetails = MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, levelOfDetails);
+        MeshDetails meshDetails = MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, lod);
 
         lock(meshThreadCollection)
         {
@@ -125,21 +125,21 @@ public class MapController : MonoBehaviour
         }
     }
 
-    public void RequestMapDetails(Action<MapDetails> callback)
+    public void RequestMapDetails(Action<MapDetails> callback, Vector2 center)
     {
         ThreadStart threadStart = delegate
         {
-            MapDetailsThread(callback);
+            MapDetailsThread(callback, center);
         };
 
         new Thread(threadStart).Start();
     }
 
-    public void RequestMeshDetails(Action<MeshDetails> callback, MapDetails mapDetails)
+    public void RequestMeshDetails(Action<MeshDetails> callback, MapDetails mapDetails, int lod)
     {
         ThreadStart threadStart = delegate
         {
-            MeshDetailsThread(callback, mapDetails);
+            MeshDetailsThread(callback, mapDetails, lod);
         };
 
         new Thread(threadStart).Start();

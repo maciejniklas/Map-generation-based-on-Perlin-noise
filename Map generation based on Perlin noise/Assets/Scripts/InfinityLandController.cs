@@ -4,31 +4,42 @@ using UnityEngine;
 
 public class InfinityLandController : MonoBehaviour
 {
-    public const float viewRange = 450f;
+    private const float playerDistanceToUpdate = 25f;
+    private const float sqrPlayerDistanceToUpdate = playerDistanceToUpdate * playerDistanceToUpdate;
 
     public Transform player;
     public Material material;
+    public LODDetails[] lodDetails;
 
     private int areaResolution;
     private int visibleAreas;
     private Dictionary<Vector2, Area> areasCollection = new Dictionary<Vector2, Area>();
     private List<Area> lastUpdateareasCollection = new List<Area>();
+    private Vector2 lastPlayerPosition;
 
     public static Vector2 playerPosition;
+    public static float viewRange;
     private static MapController mapController;
 
     private void Start()
     {
         areaResolution = MapController.resolution - 1;
+        viewRange = lodDetails[lodDetails.Length - 1].distance;
         visibleAreas = Mathf.RoundToInt(viewRange / areaResolution);
         mapController = FindObjectOfType<MapController>();
+
+        UpdateVisibleAreas();
     }
 
     private void Update()
     {
         playerPosition = new Vector2(player.position.x, player.position.z);
 
-        UpdateVisibleAreas();
+        if((lastPlayerPosition - playerPosition).sqrMagnitude > sqrPlayerDistanceToUpdate)
+        {
+            lastPlayerPosition = playerPosition;
+            UpdateVisibleAreas();
+        }
     }
 
     private void UpdateVisibleAreas()
@@ -59,7 +70,7 @@ public class InfinityLandController : MonoBehaviour
                 }
                 else
                 {
-                    areasCollection.Add(areaCoords, new Area(areaCoords, areaResolution, transform, material));
+                    areasCollection.Add(areaCoords, new Area(areaCoords, areaResolution, transform, material, lodDetails));
                 }
             }
         }
@@ -72,8 +83,14 @@ public class InfinityLandController : MonoBehaviour
         private Bounds bounds;
         private MeshRenderer meshRenderer;
         private MeshFilter meshFilter;
+        private LODDetails[] lodDetails;
+        private LODMesh[] lodMeshes;
+        private MapDetails mapDetails;
+        private bool received;
+        private int previousLODIndex = -1;
 
-        public Area(Vector2 coords, int resolution, Transform parent, Material material)
+
+        public Area(Vector2 coords, int resolution, Transform parent, Material material, LODDetails[] lodDetails)
         {
             position = coords * resolution;
 
@@ -87,11 +104,19 @@ public class InfinityLandController : MonoBehaviour
 
             SetVisible(false);
 
-            mapController.RequestMapDetails(OnMapDetailsReceived);
+            mapController.RequestMapDetails(OnMapDetailsReceived, position);
 
             meshRenderer = instance.AddComponent<MeshRenderer>();
             meshFilter = instance.AddComponent<MeshFilter>();
             meshRenderer.material = material;
+
+            this.lodDetails = lodDetails;
+            lodMeshes = new LODMesh[lodDetails.Length];
+
+            for(int index = 0; index < lodDetails.Length; index++)
+            {
+                lodMeshes[index] = new LODMesh(lodDetails[index].lod, UpdateArea);
+            }
         }
 
         public bool IsVisible()
@@ -101,7 +126,13 @@ public class InfinityLandController : MonoBehaviour
         
         private void OnMapDetailsReceived(MapDetails mapDetails)
         {
-            mapController.RequestMeshDetails(OnMeshDetailsReceived, mapDetails);
+            this.mapDetails = mapDetails;
+            received = true;
+
+            Texture2D texture = TextureController.GenerateFromColors(mapDetails.mapColors, MapController.resolution);
+            meshRenderer.material.mainTexture = texture;
+
+            UpdateArea();
         }
 
         private void OnMeshDetailsReceived(MeshDetails meshDetails)
@@ -116,10 +147,80 @@ public class InfinityLandController : MonoBehaviour
 
         public void UpdateArea()
         {
-            float distanceToPlayer = Mathf.Sqrt(bounds.SqrDistance(playerPosition));
-            bool visible = distanceToPlayer <= viewRange;
+            if(received)
+            {
+                float distanceToPlayer = Mathf.Sqrt(bounds.SqrDistance(playerPosition));
+                bool visible = distanceToPlayer <= viewRange;
 
-            SetVisible(visible);
+                if (visible)
+                {
+                    int lodIndex = 0;
+
+                    for (int index = 0; index < lodDetails.Length; index++)
+                    {
+                        if (distanceToPlayer > lodDetails[index].distance)
+                        {
+                            lodIndex = index + 1;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    if (lodIndex != previousLODIndex)
+                    {
+                        LODMesh lodMesh = lodMeshes[lodIndex];
+
+                        if (lodMesh.received)
+                        {
+                            meshFilter.mesh = lodMesh.mesh;
+                            previousLODIndex = lodIndex;
+                        }
+                        else if (!lodMesh.requested)
+                        {
+                            lodMesh.RequestMesh(mapDetails);
+                        }
+                    }
+                }
+
+                SetVisible(visible);
+            }
         }
     }
+
+    private class LODMesh
+    {
+        public Mesh mesh;
+        public bool requested;
+        public bool received;
+        private int lod;
+        private System.Action update;
+
+        public LODMesh(int lod, System.Action updateCallback)
+        {
+            this.lod = lod;
+            update = updateCallback;
+        }
+
+        private void OnMeshDetailsReceived(MeshDetails meshDetails)
+        {
+            mesh = meshDetails.BuildMesh();
+            received = true;
+            update();
+        }
+
+        public void RequestMesh(MapDetails mapDetails)
+        {
+            requested = true;
+            mapController.RequestMeshDetails(OnMeshDetailsReceived, mapDetails, lod);
+        }
+    }
+
+    [System.Serializable]
+    public struct LODDetails
+    {
+        public int lod;
+        public float distance;
+    };
 }
