@@ -6,7 +6,7 @@ public class MapController : MonoBehaviour
 {
     public enum DisplayMode { Noise, Color, Mesh };
 
-    private const int resolution = 241;
+    public const int resolution = 241;
 
     public float scale;
     public NoiseType type;
