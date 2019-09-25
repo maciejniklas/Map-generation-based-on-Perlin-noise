@@ -8,6 +8,8 @@ public enum NoiseType { Value, Perlin }
 
 public static class Noise
 {
+    public enum HeightNormalizeMode { Local, Global}
+
     public static NoiseGenerator[] perlinNoise = { Perlin1D, Perlin2D };
     public static NoiseGenerator[] valueNoise = { Value1D, Value2D };
     public static NoiseGenerator[][] noiseType = { valueNoise, perlinNoise };
@@ -52,29 +54,38 @@ public static class Noise
         return gradient.x * x + gradient.y * y;
     }
 
-    public static float[,] GenerateNoiseArea(int resolution, float scale, NoiseType type, int dimension, int octaves, float persistance, float lacunarity, int seed, Vector3 offset)
+    public static float[,] GenerateNoiseArea(int resolution, float scale, NoiseType type, int dimension, int octaves, float persistance, float lacunarity, int seed, Vector3 offset, HeightNormalizeMode heightMode)
     {
         float[,] noiseArea = new float[resolution, resolution];
         NoiseGenerator generator = noiseType[(int)type][dimension - 1];
         System.Random random = new System.Random(seed);
         Vector3[] octaveOffsets = new Vector3[octaves];
 
+        offset.y *= -1;
+
+        float globalMaxHeight = 0;
+        float amplitude = 1f;
+        float frequency = 1f;
+
         for (int octaveIndex = 0; octaveIndex < octaves; octaveIndex++)
         {
             octaveOffsets[octaveIndex] = new Vector3(random.Next(-1000000, 100000), random.Next(-1000000, 100000)) + offset;
+
+            globalMaxHeight += amplitude;
+            amplitude *= persistance;
         }
 
         scale = scale <= 0 ? 0.001f : scale;
 
-        float minHeight = float.MaxValue;
-        float maxHeight = float.MinValue;
+        float localMinHeight = float.MaxValue;
+        float localMaxHeight = float.MinValue;
 
         for(int yIndex = 0; yIndex < resolution; yIndex++)
         {
             for(int xIndex = 0; xIndex < resolution; xIndex++)
             {
-                float amplitude = 1f;
-                float frequency = 1f;
+                amplitude = 1f;
+                frequency = 1f;
                 float height = 0f;
 
                 for(int octaveIndex = 0; octaveIndex < octaves; octaveIndex++)
@@ -82,9 +93,9 @@ public static class Noise
                     Vector3 point = new Vector3(xIndex, yIndex);
                     point.x -= resolution / 2;
                     point.y -= resolution / 2;
+                    point += octaveOffsets[octaveIndex];
                     point /= scale;
                     point *= frequency;
-                    point += octaveOffsets[octaveIndex];
 
                     float value = generator(point);
 
@@ -93,13 +104,13 @@ public static class Noise
                     frequency *= lacunarity;
                 }
 
-                if(height > maxHeight)
+                if(height > localMaxHeight)
                 {
-                    maxHeight = height;
+                    localMaxHeight = height;
                 }
-                else if (height < minHeight)
+                else if (height < localMinHeight)
                 {
-                    minHeight = height;
+                    localMinHeight = height;
                 }
 
                 noiseArea[xIndex, yIndex] = height;
@@ -110,7 +121,15 @@ public static class Noise
         {
             for (int xIndex = 0; xIndex < resolution; xIndex++)
             {
-                noiseArea[xIndex, yIndex] = Mathf.InverseLerp(minHeight, maxHeight, noiseArea[xIndex, yIndex]);
+                if(heightMode == HeightNormalizeMode.Local)
+                {
+                    noiseArea[xIndex, yIndex] = Mathf.InverseLerp(localMinHeight, localMaxHeight, noiseArea[xIndex, yIndex]);
+                }
+                else if(heightMode == HeightNormalizeMode.Global)
+                {
+                    float unificatedHeight = (noiseArea[xIndex, yIndex] + 1) / globalMaxHeight;
+                    noiseArea[xIndex, yIndex] = Mathf.Clamp(unificatedHeight, 0, int.MaxValue);
+                }
             }
         }
 

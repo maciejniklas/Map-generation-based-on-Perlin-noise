@@ -14,6 +14,7 @@ public class MapController : MonoBehaviour
     public NoiseType type;
     [Range(1, 2)] public int dimension = 2;
     public DisplayMode displayMode;
+    public Noise.HeightNormalizeMode heightMode;
 
     [Space(10)]
 
@@ -63,7 +64,7 @@ public class MapController : MonoBehaviour
 
     private MapDetails BuildMapDetails(Vector2 center)
     {
-        float[,] noiseArea = Noise.GenerateNoiseArea(resolution, scale, type, dimension, octaves, perisstance, lacunarity, seed, new Vector3(center.x, center.y) + offset);
+        float[,] noiseArea = Noise.GenerateNoiseArea(resolution, scale, type, dimension, octaves, perisstance, lacunarity, seed, new Vector3(center.x, center.y) + offset, heightMode);
         Color[] mapColors = new Color[resolution * resolution];
 
         for(int yIndex = 0; yIndex < resolution; yIndex++)
@@ -74,9 +75,12 @@ public class MapController : MonoBehaviour
 
                 for(int regionIndex = 0; regionIndex < regions.Length; regionIndex++)
                 {
-                    if(height <= regions[regionIndex].height)
+                    if(height >= regions[regionIndex].height)
                     {
                         mapColors[yIndex * resolution + xIndex] = regions[regionIndex].color;
+                    }
+                    else
+                    {
                         break;
                     }
                 }

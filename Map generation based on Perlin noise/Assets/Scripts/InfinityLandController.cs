@@ -6,6 +6,7 @@ public class InfinityLandController : MonoBehaviour
 {
     private const float playerDistanceToUpdate = 25f;
     private const float sqrPlayerDistanceToUpdate = playerDistanceToUpdate * playerDistanceToUpdate;
+    private const float scale = 1f;
 
     public Transform player;
     public Material material;
@@ -14,12 +15,12 @@ public class InfinityLandController : MonoBehaviour
     private int areaResolution;
     private int visibleAreas;
     private Dictionary<Vector2, Area> areasCollection = new Dictionary<Vector2, Area>();
-    private List<Area> lastUpdateareasCollection = new List<Area>();
     private Vector2 lastPlayerPosition;
 
     public static Vector2 playerPosition;
     public static float viewRange;
     private static MapController mapController;
+    private static List<Area> lastUpdateareasCollection = new List<Area>();
 
     private void Start()
     {
@@ -33,7 +34,7 @@ public class InfinityLandController : MonoBehaviour
 
     private void Update()
     {
-        playerPosition = new Vector2(player.position.x, player.position.z);
+        playerPosition = new Vector2(player.position.x, player.position.z) / scale;
 
         if((lastPlayerPosition - playerPosition).sqrMagnitude > sqrPlayerDistanceToUpdate)
         {
@@ -62,11 +63,6 @@ public class InfinityLandController : MonoBehaviour
                 if(areasCollection.ContainsKey(areaCoords))
                 {
                     areasCollection[areaCoords].UpdateArea();
-
-                    if(areasCollection[areaCoords].IsVisible())
-                    {
-                        lastUpdateareasCollection.Add(areasCollection[areaCoords]);
-                    }
                 }
                 else
                 {
@@ -97,7 +93,7 @@ public class InfinityLandController : MonoBehaviour
             Vector3 position3D = new Vector3(position.x, 0, position.y);
 
             instance = new GameObject("Area");
-            instance.transform.position = position3D;
+            instance.transform.position = position3D * scale;
             instance.transform.parent = parent;
 
             bounds = new Bounds(position, Vector2.one * resolution);
@@ -109,6 +105,7 @@ public class InfinityLandController : MonoBehaviour
             meshRenderer = instance.AddComponent<MeshRenderer>();
             meshFilter = instance.AddComponent<MeshFilter>();
             meshRenderer.material = material;
+            instance.transform.localScale = Vector3.one * scale;
 
             this.lodDetails = lodDetails;
             lodMeshes = new LODMesh[lodDetails.Length];
@@ -182,6 +179,8 @@ public class InfinityLandController : MonoBehaviour
                             lodMesh.RequestMesh(mapDetails);
                         }
                     }
+
+                    lastUpdateareasCollection.Add(this);
                 }
 
                 SetVisible(visible);
