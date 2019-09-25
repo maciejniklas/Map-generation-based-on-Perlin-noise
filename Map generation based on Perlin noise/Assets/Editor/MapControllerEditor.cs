@@ -12,12 +12,12 @@ public class MapControllerEditor : Editor
 
         if(DrawDefaultInspector() && controller.autoUpdate)
         {
-            controller.BuildMap();
+            controller.DisplayInEditor();
         }
 
         if (GUILayout.Button("Generate"))
         {
-            controller.BuildMap();
+            controller.DisplayInEditor();
         }
     }
 }

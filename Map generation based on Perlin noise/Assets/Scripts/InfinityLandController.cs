@@ -7,6 +7,7 @@ public class InfinityLandController : MonoBehaviour
     public const float viewRange = 450f;
 
     public Transform player;
+    public Material material;
 
     private int areaResolution;
     private int visibleAreas;
@@ -14,11 +15,13 @@ public class InfinityLandController : MonoBehaviour
     private List<Area> lastUpdateareasCollection = new List<Area>();
 
     public static Vector2 playerPosition;
+    private static MapController mapController;
 
     private void Start()
     {
         areaResolution = MapController.resolution - 1;
         visibleAreas = Mathf.RoundToInt(viewRange / areaResolution);
+        mapController = FindObjectOfType<MapController>();
     }
 
     private void Update()
@@ -56,7 +59,7 @@ public class InfinityLandController : MonoBehaviour
                 }
                 else
                 {
-                    areasCollection.Add(areaCoords, new Area(areaCoords, areaResolution, transform));
+                    areasCollection.Add(areaCoords, new Area(areaCoords, areaResolution, transform, material));
                 }
             }
         }
@@ -67,26 +70,43 @@ public class InfinityLandController : MonoBehaviour
         private Vector2 position;
         private GameObject instance;
         private Bounds bounds;
+        private MeshRenderer meshRenderer;
+        private MeshFilter meshFilter;
 
-        public Area(Vector2 coords, int resolution, Transform parent)
+        public Area(Vector2 coords, int resolution, Transform parent, Material material)
         {
             position = coords * resolution;
 
             Vector3 position3D = new Vector3(position.x, 0, position.y);
 
-            instance = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            instance = new GameObject("Area");
             instance.transform.position = position3D;
-            instance.transform.localScale = Vector3.one * resolution / 10f;
             instance.transform.parent = parent;
 
             bounds = new Bounds(position, Vector2.one * resolution);
 
             SetVisible(false);
+
+            mapController.RequestMapDetails(OnMapDetailsReceived);
+
+            meshRenderer = instance.AddComponent<MeshRenderer>();
+            meshFilter = instance.AddComponent<MeshFilter>();
+            meshRenderer.material = material;
         }
 
         public bool IsVisible()
         {
             return instance.activeSelf;
+        }
+        
+        private void OnMapDetailsReceived(MapDetails mapDetails)
+        {
+            mapController.RequestMeshDetails(OnMeshDetailsReceived, mapDetails);
+        }
+
+        private void OnMeshDetailsReceived(MeshDetails meshDetails)
+        {
+            meshFilter.mesh = meshDetails.BuildMesh();
         }
 
         public void SetVisible(bool visible)

@@ -13,12 +13,13 @@ public static class MeshController
         int verticesInRow = (resolution - 1) / lodIncrement + 1;
         MeshDetails meshDetails = new MeshDetails(resolution);
         int currentVertexIndex = 0;
+        AnimationCurve mapHeightCurve = new AnimationCurve(curve.keys);
 
         for(int yIndex = 0; yIndex < resolution; yIndex += lodIncrement)
         {
             for(int xIndex = 0; xIndex < resolution; xIndex += lodIncrement)
             {
-                meshDetails.vertices[currentVertexIndex] = new Vector3(topLeftX + xIndex, curve.Evaluate(noiseArea[xIndex, yIndex]) * multiplier, topLeftZ - yIndex);
+                meshDetails.vertices[currentVertexIndex] = new Vector3(topLeftX + xIndex, mapHeightCurve.Evaluate(noiseArea[xIndex, yIndex]) * multiplier, topLeftZ - yIndex);
                 meshDetails.uvs[currentVertexIndex] = new Vector2(xIndex / (float)resolution, yIndex / (float)resolution);
 
                 if(xIndex < resolution - 1 && yIndex < resolution - 1)
