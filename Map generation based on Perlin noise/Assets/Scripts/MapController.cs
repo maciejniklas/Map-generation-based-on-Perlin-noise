@@ -8,7 +8,7 @@ public class MapController : MonoBehaviour
 {
     public enum DisplayMode { Noise, Color, Mesh, Falloff };
 
-    public const int resolution = 241;
+    public const int resolution = 239;
 
     public float scale;
     public NoiseType type;
@@ -81,7 +81,7 @@ public class MapController : MonoBehaviour
 
     private MapDetails BuildMapDetails(Vector2 center)
     {
-        float[,] noiseArea = Noise.GenerateNoiseArea(resolution, scale, type, dimension, octaves, perisstance, lacunarity, seed, new Vector3(center.x, center.y) + offset, heightMode);
+        float[,] noiseArea = Noise.GenerateNoiseArea(resolution + 2, scale, type, dimension, octaves, perisstance, lacunarity, seed, new Vector3(center.x, center.y) + offset, heightMode);
         Color[] mapColors = new Color[resolution * resolution];
 
         for(int yIndex = 0; yIndex < resolution; yIndex++)
