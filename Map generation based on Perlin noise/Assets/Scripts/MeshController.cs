@@ -69,6 +69,8 @@ public static class MeshController
             }
         }
 
+        meshDetails.BuildNormals();
+
         return meshDetails;
     }
 }
@@ -80,6 +82,7 @@ public class MeshDetails
     private Vector2[] uvs;
     private Vector3[] frontierVertices;
     private int[] frontierTriangles;
+    private Vector3[] normals;
 
     private int currentTriangleIndex;
     private int currentFrontierTriangleIndex;
@@ -127,13 +130,18 @@ public class MeshDetails
         }
     }
 
+    public void BuildNormals()
+    {
+        normals = RecomputeNormals();
+    }
+
     public Mesh BuildMesh()
     {
         Mesh mesh = new Mesh();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
         mesh.uv = uvs;
-        mesh.normals = RecomputeNormals();
+        mesh.normals = normals;
 
         return mesh;
     }

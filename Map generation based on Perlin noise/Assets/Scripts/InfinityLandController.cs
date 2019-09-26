@@ -84,7 +84,8 @@ public class InfinityLandController : MonoBehaviour
         private MapDetails mapDetails;
         private bool received;
         private int previousLODIndex = -1;
-
+        private MeshCollider collider;
+        private LODMesh colliderMesh;
 
         public Area(Vector2 coords, int resolution, Transform parent, Material material, LODDetails[] lodDetails)
         {
@@ -113,7 +114,14 @@ public class InfinityLandController : MonoBehaviour
             for(int index = 0; index < lodDetails.Length; index++)
             {
                 lodMeshes[index] = new LODMesh(lodDetails[index].lod, UpdateArea);
+
+                if(lodDetails[index].forCollider)
+                {
+                    colliderMesh = lodMeshes[index];
+                }
             }
+
+            collider = instance.AddComponent<MeshCollider>();
         }
 
         public bool IsVisible()
@@ -180,6 +188,18 @@ public class InfinityLandController : MonoBehaviour
                         }
                     }
 
+                    if(lodIndex == 0)
+                    {
+                        if(colliderMesh.received)
+                        {
+                            collider.sharedMesh = colliderMesh.mesh;
+                        }
+                        else if(!colliderMesh.requested)
+                        {
+                            colliderMesh.RequestMesh(mapDetails);
+                        }
+                    }
+
                     lastUpdateareasCollection.Add(this);
                 }
 
@@ -221,5 +241,6 @@ public class InfinityLandController : MonoBehaviour
     {
         public int lod;
         public float distance;
+        public bool forCollider;
     };
 }

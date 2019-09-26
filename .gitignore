@@ -4,6 +4,7 @@
 */Temp/*
 */.vs/*
 */obj/*
+Map generation based on Perlin noise/Assets/Standard Assets/*
 
 *.csproj
 *.sln
