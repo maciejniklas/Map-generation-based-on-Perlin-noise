@@ -6,7 +6,7 @@ using System.Threading;
 
 public class MapController : MonoBehaviour
 {
-    public enum DisplayMode { Noise, Color, Mesh };
+    public enum DisplayMode { Noise, Color, Mesh, Falloff };
 
     public const int resolution = 241;
 
@@ -33,6 +33,7 @@ public class MapController : MonoBehaviour
     [Space(10)]
 
     public bool autoUpdate = true;
+    public bool useFalloff = false;
 
     [Space(10)]
 
@@ -40,6 +41,22 @@ public class MapController : MonoBehaviour
 
     private Queue<MapThread<MapDetails>> mapThreadCollection = new Queue<MapThread<MapDetails>>();
     private Queue<MapThread<MeshDetails>> meshThreadCollection = new Queue<MapThread<MeshDetails>>();
+    private float[,] falloffArea;
+
+    private void Awake()
+    {
+        falloffArea = FalloffController.GenerateFalloffArea(resolution);
+    }
+
+    private void OnValidate()
+    {
+        if(lacunarity < 1)
+        {
+            lacunarity = 1;
+        }
+
+        falloffArea = FalloffController.GenerateFalloffArea(resolution);
+    }
 
     private void Update()
     {
@@ -71,6 +88,11 @@ public class MapController : MonoBehaviour
         {
             for(int xIndex = 0; xIndex < resolution; xIndex++)
             {
+                if(useFalloff)
+                {
+                    noiseArea[xIndex, yIndex] = Mathf.Clamp01(noiseArea[xIndex, yIndex] - falloffArea[xIndex, yIndex]);
+                }
+
                 float height = noiseArea[xIndex, yIndex];
 
                 for(int regionIndex = 0; regionIndex < regions.Length; regionIndex++)
@@ -106,6 +128,10 @@ public class MapController : MonoBehaviour
         else if (displayMode == DisplayMode.Mesh)
         {
             handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, previevLOD), TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
+        }
+        else if(displayMode == DisplayMode.Falloff)
+        {
+            handler.DisplayMap(TextureController.GenerateFromNoise(falloffArea));
         }
     }
 
