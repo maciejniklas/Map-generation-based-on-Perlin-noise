@@ -8,8 +8,6 @@ public class MapController : MonoBehaviour
 {
     public enum DisplayMode { Noise, Color, Mesh, Falloff };
 
-    public const int resolution = 239;
-
     public float scale;
     public NoiseType type;
     [Range(1, 2)] public int dimension = 2;
@@ -28,12 +26,13 @@ public class MapController : MonoBehaviour
 
     public float heightMultiplier;
     public AnimationCurve curve;
-    [Range(0, 6)] public int previevLOD = 1;
+    [Range(0, 4)] public int previevLOD = 1;
 
     [Space(10)]
 
     public bool autoUpdate = true;
     public bool useFalloff = false;
+    public bool useFlatshading = false;
 
     [Space(10)]
 
@@ -42,6 +41,27 @@ public class MapController : MonoBehaviour
     private Queue<MapThread<MapDetails>> mapThreadCollection = new Queue<MapThread<MapDetails>>();
     private Queue<MapThread<MeshDetails>> meshThreadCollection = new Queue<MapThread<MeshDetails>>();
     private float[,] falloffArea;
+    private static MapController instance;
+
+    public static int resolution
+    {
+        get
+        {
+            if(instance == null)
+            {
+                instance = FindObjectOfType<MapController>();
+            }
+
+            if(instance.useFlatshading)
+            {
+                return 95;
+            }
+            else
+            {
+                return 239;
+            }
+        }
+    }
 
     private void Awake()
     {
@@ -127,7 +147,7 @@ public class MapController : MonoBehaviour
         }
         else if (displayMode == DisplayMode.Mesh)
         {
-            handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, previevLOD), TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
+            handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, previevLOD, useFlatshading), TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
         }
         else if(displayMode == DisplayMode.Falloff)
         {
@@ -147,7 +167,7 @@ public class MapController : MonoBehaviour
 
     private void MeshDetailsThread(Action<MeshDetails> callback, MapDetails mapDetails, int lod)
     {
-        MeshDetails meshDetails = MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, lod);
+        MeshDetails meshDetails = MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, lod, useFlatshading);
 
         lock(meshThreadCollection)
         {

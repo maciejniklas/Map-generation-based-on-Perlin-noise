@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class MeshController
 {
-    public static MeshDetails GenerateMesh(float[,] noiseArea, float multiplier, AnimationCurve curve, int lod)
+    public static MeshDetails GenerateMesh(float[,] noiseArea, float multiplier, AnimationCurve curve, int lod, bool flatshading)
     {
         int lodIncrement = lod == 0 ? 1 : lod * 2;
 
@@ -17,7 +17,7 @@ public static class MeshController
 
         int verticesInRow = (meshResolution - 1) / lodIncrement + 1;
 
-        MeshDetails meshDetails = new MeshDetails(verticesInRow);
+        MeshDetails meshDetails = new MeshDetails(verticesInRow, flatshading);
         AnimationCurve mapHeightCurve = new AnimationCurve(curve.keys);
 
         int[,] vertexIndexes = new int[frontierResolution, frontierResolution];
@@ -69,7 +69,7 @@ public static class MeshController
             }
         }
 
-        meshDetails.BuildNormals();
+        meshDetails.BuildLighting();
 
         return meshDetails;
     }
@@ -86,8 +86,9 @@ public class MeshDetails
 
     private int currentTriangleIndex;
     private int currentFrontierTriangleIndex;
+    private bool useFlatshading;
 
-    public MeshDetails(int resolution)
+    public MeshDetails(int resolution, bool useFlatshading)
     {
         vertices = new Vector3[resolution * resolution];
         triangles = new int[(resolution - 1) * (resolution - 1) * 6];
@@ -95,6 +96,8 @@ public class MeshDetails
 
         frontierVertices = new Vector3[resolution * 4 + 4];
         frontierTriangles = new int[24 * resolution];
+
+        this.useFlatshading = useFlatshading;
     }
 
     public void AddTriangle(int vertexIndexA, int vertexIndexB, int vertexIndexC)
@@ -130,7 +133,19 @@ public class MeshDetails
         }
     }
 
-    public void BuildNormals()
+    public void BuildLighting()
+    {
+        if(useFlatshading)
+        {
+            Flatshading();
+        }
+        else
+        {
+            BuildNormals();
+        }
+    }
+
+    private void BuildNormals()
     {
         normals = RecomputeNormals();
     }
@@ -141,9 +156,33 @@ public class MeshDetails
         mesh.vertices = vertices;
         mesh.triangles = triangles;
         mesh.uv = uvs;
-        mesh.normals = normals;
+
+        if(useFlatshading)
+        {
+            mesh.RecalculateNormals();
+        }
+        else
+        {
+            mesh.normals = normals;
+        }
 
         return mesh;
+    }
+
+    private void Flatshading()
+    {
+        Vector3[] vertices = new Vector3[triangles.Length];
+        Vector2[] uvs = new Vector2[triangles.Length];
+        
+        for(int index = 0; index < triangles.Length; index++)
+        {
+            vertices[index] = this.vertices[triangles[index]];
+            uvs[index] = this.uvs[triangles[index]];
+            triangles[index] = index;
+        }
+
+        this.vertices = vertices;
+        this.uvs = uvs;
     }
 
     private Vector3[] RecomputeNormals()
