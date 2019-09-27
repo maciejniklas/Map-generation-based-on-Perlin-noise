@@ -15,9 +15,9 @@ public class MapHandler : MonoBehaviour
         textureRenderer.transform.localScale = new Vector3(texture.width , 1, texture.height);
     }
 
-    public void DisplayMesh(MeshDetails meshDetails, Texture2D texture)
+    public void DisplayMesh(MeshDetails meshDetails)
     {
         meshFilter.sharedMesh = meshDetails.BuildMesh();
-        meshRenderer.sharedMaterial.mainTexture = texture;
+        meshFilter.transform.localScale = Vector3.one * FindObjectOfType<MapController>().areaAsset.scale;
     }
 }

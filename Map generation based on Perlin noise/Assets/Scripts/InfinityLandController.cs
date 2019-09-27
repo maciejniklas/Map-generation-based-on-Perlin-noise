@@ -6,7 +6,6 @@ public class InfinityLandController : MonoBehaviour
 {
     private const float playerDistanceToUpdate = 25f;
     private const float sqrPlayerDistanceToUpdate = playerDistanceToUpdate * playerDistanceToUpdate;
-    private const float scale = 1f;
 
     public Transform player;
     public Material material;
@@ -24,7 +23,7 @@ public class InfinityLandController : MonoBehaviour
 
     private void Start()
     {
-        areaResolution = MapController.resolution - 1;
+        areaResolution = mapController.resolution - 1;
         viewRange = lodDetails[lodDetails.Length - 1].distance;
         visibleAreas = Mathf.RoundToInt(viewRange / areaResolution);
         mapController = FindObjectOfType<MapController>();
@@ -34,7 +33,7 @@ public class InfinityLandController : MonoBehaviour
 
     private void Update()
     {
-        playerPosition = new Vector2(player.position.x, player.position.z) / scale;
+        playerPosition = new Vector2(player.position.x, player.position.z) / mapController.areaAsset.scale;
 
         if((lastPlayerPosition - playerPosition).sqrMagnitude > sqrPlayerDistanceToUpdate)
         {
@@ -94,7 +93,7 @@ public class InfinityLandController : MonoBehaviour
             Vector3 position3D = new Vector3(position.x, 0, position.y);
 
             instance = new GameObject("Area");
-            instance.transform.position = position3D * scale;
+            instance.transform.position = position3D * mapController.areaAsset.scale;
             instance.transform.parent = parent;
 
             bounds = new Bounds(position, Vector2.one * resolution);
@@ -106,7 +105,7 @@ public class InfinityLandController : MonoBehaviour
             meshRenderer = instance.AddComponent<MeshRenderer>();
             meshFilter = instance.AddComponent<MeshFilter>();
             meshRenderer.material = material;
-            instance.transform.localScale = Vector3.one * scale;
+            instance.transform.localScale = Vector3.one * mapController.areaAsset.scale;
 
             this.lodDetails = lodDetails;
             lodMeshes = new LODMesh[lodDetails.Length];
@@ -133,9 +132,6 @@ public class InfinityLandController : MonoBehaviour
         {
             this.mapDetails = mapDetails;
             received = true;
-
-            Texture2D texture = TextureController.GenerateFromColors(mapDetails.mapColors, MapController.resolution);
-            meshRenderer.material.mainTexture = texture;
 
             UpdateArea();
         }

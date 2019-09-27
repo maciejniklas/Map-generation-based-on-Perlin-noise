@@ -6,53 +6,31 @@ using System.Threading;
 
 public class MapController : MonoBehaviour
 {
-    public enum DisplayMode { Noise, Color, Mesh, Falloff };
+    public enum DisplayMode { Noise, Mesh, Falloff };
 
-    public float scale;
-    public NoiseType type;
-    [Range(1, 2)] public int dimension = 2;
+    public NoiseAsset noiseAsset;
+    public AreaAsset areaAsset;
+    public TextureAsset textureAsset;
     public DisplayMode displayMode;
-    public Noise.HeightNormalizeMode heightMode;
+    public Material areaMaterial;
 
     [Space(10)]
 
-    [Range(1, 6)] public int octaves;
-    [Range(0, 1)] public float perisstance;
-    public float lacunarity;
-    public int seed;
-    public Vector3 offset;
-
-    [Space(10)]
-
-    public float heightMultiplier;
-    public AnimationCurve curve;
     [Range(0, 4)] public int previevLOD = 1;
 
     [Space(10)]
 
     public bool autoUpdate = true;
-    public bool useFalloff = false;
-    public bool useFlatshading = false;
-
-    [Space(10)]
-
-    public Region[] regions;
 
     private Queue<MapThread<MapDetails>> mapThreadCollection = new Queue<MapThread<MapDetails>>();
     private Queue<MapThread<MeshDetails>> meshThreadCollection = new Queue<MapThread<MeshDetails>>();
     private float[,] falloffArea;
-    private static MapController instance;
 
-    public static int resolution
+    public int resolution
     {
         get
         {
-            if(instance == null)
-            {
-                instance = FindObjectOfType<MapController>();
-            }
-
-            if(instance.useFlatshading)
+            if(areaAsset.useFlatshading)
             {
                 return 95;
             }
@@ -63,19 +41,25 @@ public class MapController : MonoBehaviour
         }
     }
 
-    private void Awake()
-    {
-        falloffArea = FalloffController.GenerateFalloffArea(resolution);
-    }
-
     private void OnValidate()
     {
-        if(lacunarity < 1)
+        if(areaAsset != null)
         {
-            lacunarity = 1;
+            areaAsset.onDataUpdate -= OnDataUpdate;
+            areaAsset.onDataUpdate += OnDataUpdate;
         }
 
-        falloffArea = FalloffController.GenerateFalloffArea(resolution);
+        if(noiseAsset != null)
+        {
+            noiseAsset.onDataUpdate -= OnDataUpdate;
+            noiseAsset.onDataUpdate += OnDataUpdate;
+        }
+
+        if(textureAsset != null)
+        {
+            textureAsset.onDataUpdate -= OnTextureUpdate;
+            textureAsset.onDataUpdate += OnTextureUpdate;
+        }
     }
 
     private void Update()
@@ -101,35 +85,28 @@ public class MapController : MonoBehaviour
 
     private MapDetails BuildMapDetails(Vector2 center)
     {
-        float[,] noiseArea = Noise.GenerateNoiseArea(resolution + 2, scale, type, dimension, octaves, perisstance, lacunarity, seed, new Vector3(center.x, center.y) + offset, heightMode);
-        Color[] mapColors = new Color[resolution * resolution];
+        float[,] noiseArea = Noise.GenerateNoiseArea(resolution + 2, noiseAsset.scale, noiseAsset.type, noiseAsset.dimension, noiseAsset.octaves, noiseAsset.perisstance, noiseAsset.lacunarity, noiseAsset.seed, new Vector3(center.x, center.y) + noiseAsset.offset, noiseAsset.heightMode);
 
-        for(int yIndex = 0; yIndex < resolution; yIndex++)
+        if(areaAsset.useFalloff)
         {
-            for(int xIndex = 0; xIndex < resolution; xIndex++)
+            if(falloffArea == null)
             {
-                if(useFalloff)
-                {
-                    noiseArea[xIndex, yIndex] = Mathf.Clamp01(noiseArea[xIndex, yIndex] - falloffArea[xIndex, yIndex]);
-                }
+                falloffArea = FalloffController.GenerateFalloffArea(resolution + 2);
+            }
 
-                float height = noiseArea[xIndex, yIndex];
-
-                for(int regionIndex = 0; regionIndex < regions.Length; regionIndex++)
+            for (int yIndex = 0; yIndex < resolution + 2; yIndex++)
+            {
+                for (int xIndex = 0; xIndex < resolution + 2; xIndex++)
                 {
-                    if(height >= regions[regionIndex].height)
+                    if (areaAsset.useFalloff)
                     {
-                        mapColors[yIndex * resolution + xIndex] = regions[regionIndex].color;
-                    }
-                    else
-                    {
-                        break;
+                        noiseArea[xIndex, yIndex] = Mathf.Clamp01(noiseArea[xIndex, yIndex] - falloffArea[xIndex, yIndex]);
                     }
                 }
             }
         }
 
-        return new MapDetails(noiseArea, mapColors);
+        return new MapDetails(noiseArea);
     }
 
     public void DisplayInEditor()
@@ -141,13 +118,9 @@ public class MapController : MonoBehaviour
         {
             handler.DisplayMap(TextureController.GenerateFromNoise(mapDetails.noiseArea));
         }
-        else if (displayMode == DisplayMode.Color)
-        {
-            handler.DisplayMap(TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
-        }
         else if (displayMode == DisplayMode.Mesh)
         {
-            handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, previevLOD, useFlatshading), TextureController.GenerateFromColors(mapDetails.mapColors, resolution));
+            handler.DisplayMesh(MeshController.GenerateMesh(mapDetails.noiseArea, areaAsset.heightMultiplier, areaAsset.curve, previevLOD, areaAsset.useFlatshading));
         }
         else if(displayMode == DisplayMode.Falloff)
         {
@@ -167,12 +140,25 @@ public class MapController : MonoBehaviour
 
     private void MeshDetailsThread(Action<MeshDetails> callback, MapDetails mapDetails, int lod)
     {
-        MeshDetails meshDetails = MeshController.GenerateMesh(mapDetails.noiseArea, heightMultiplier, curve, lod, useFlatshading);
+        MeshDetails meshDetails = MeshController.GenerateMesh(mapDetails.noiseArea, areaAsset.heightMultiplier, areaAsset.curve, lod, areaAsset.useFlatshading);
 
         lock(meshThreadCollection)
         {
             meshThreadCollection.Enqueue(new MapThread<MeshDetails>(callback, meshDetails));
         }
+    }
+
+    private void OnDataUpdate()
+    {
+        if(!Application.isPlaying)
+        {
+            DisplayInEditor();
+        }
+    }
+
+    private void OnTextureUpdate()
+    {
+        textureAsset.AttachToMaterial(areaMaterial);
     }
 
     public void RequestMapDetails(Action<MapDetails> callback, Vector2 center)
@@ -211,19 +197,9 @@ public class MapController : MonoBehaviour
 public struct MapDetails
 {
     public readonly float[,] noiseArea;
-    public readonly Color[] mapColors;
 
-    public MapDetails(float[,] noiseArea, Color[] mapColors)
+    public MapDetails(float[,] noiseArea)
     {
         this.noiseArea = noiseArea;
-        this.mapColors = mapColors;
     }
-};
-
-[System.Serializable]
-public struct Region
-{
-    public float height;
-    public Color color;
-    public string label;
 };
