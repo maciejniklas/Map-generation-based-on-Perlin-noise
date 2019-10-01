@@ -106,6 +106,8 @@ public class MapController : MonoBehaviour
             }
         }
 
+        textureAsset.RefreshHeights(areaMaterial, areaAsset.minHeight, areaAsset.maxHeight);
+
         return new MapDetails(noiseArea);
     }
 

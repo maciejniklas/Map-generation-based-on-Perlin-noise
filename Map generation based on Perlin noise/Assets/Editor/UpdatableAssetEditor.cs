@@ -15,6 +15,7 @@ public class UpdatableAssetEditor : Editor
         if(GUILayout.Button("Update"))
         {
             asset.Notify();
+            EditorUtility.SetDirty(target);
         }
     }
 }

@@ -11,4 +11,20 @@ public class AreaAsset : UpdatableAsset
 
     public bool useFalloff = false;
     public bool useFlatshading = false;
+
+    public float minHeight
+    {
+        get
+        {
+            return scale * heightMultiplier * curve.Evaluate(0);
+        }
+    }
+
+    public float maxHeight
+    {
+        get
+        {
+            return scale * heightMultiplier * curve.Evaluate(1);
+        }
+    }
 }

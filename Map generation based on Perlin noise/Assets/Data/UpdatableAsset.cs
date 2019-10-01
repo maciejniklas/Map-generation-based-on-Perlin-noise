@@ -11,13 +11,14 @@ public class UpdatableAsset : ScriptableObject
     {
         if(autoUpdate)
         {
-            Notify();
+            UnityEditor.EditorApplication.update += Notify;
         }
     }
 
     public void Notify()
     {
-        if(onDataUpdate != null)
+        UnityEditor.EditorApplication.update -= Notify;
+        if (onDataUpdate != null)
         {
             onDataUpdate();
         }
