@@ -13,11 +13,40 @@ MonoBehaviour:
   m_Name: DefaultTexture
   m_EditorClassIdentifier: 
   autoUpdate: 1
-  regionColors:
-  - {r: 1, g: 0, b: 0, a: 0}
-  - {r: 0, g: 0, b: 1, a: 0}
-  - {r: 0, g: 1, b: 0, a: 0}
-  regionHeights:
-  - 0
-  - 0.34
-  - 0.81
+  regions:
+  - texture: {fileID: 2800000, guid: 265476418b48d5442aee4ab680b210dd, type: 3}
+    color: {r: 0.13725491, g: 0.5372549, b: 0.85490197, a: 0}
+    impact: 0
+    height: 0
+    mixture: 0
+    textureScale: 30
+  - texture: {fileID: 2800000, guid: 75dbb47597181e849ab50b14b46a5746, type: 3}
+    color: {r: 0.9254902, g: 0.8, b: 0.63529414, a: 0}
+    impact: 0
+    height: 0.05
+    mixture: 0.01
+    textureScale: 0
+  - texture: {fileID: 2800000, guid: 4dd5d08efafad4b4f9aa3568d8a17264, type: 3}
+    color: {r: 0.28235295, g: 0.5647059, b: 0.1882353, a: 0}
+    impact: 0
+    height: 0.1
+    mixture: 0.05
+    textureScale: 10
+  - texture: {fileID: 2800000, guid: 7448333edb5b51243b3ed986fd6dece8, type: 3}
+    color: {r: 0.39607844, g: 0.3254902, b: 0.3254902, a: 0}
+    impact: 0
+    height: 0.25
+    mixture: 0.1
+    textureScale: 10
+  - texture: {fileID: 2800000, guid: 07067b27ad395e147b9e471f90d92e03, type: 3}
+    color: {r: 0.22745098, g: 0.19607843, b: 0.19607843, a: 0}
+    impact: 0
+    height: 0.45
+    mixture: 0.3
+    textureScale: 15
+  - texture: {fileID: 2800000, guid: 0fae9ec50a547e94d8ad209d265365ea, type: 3}
+    color: {r: 1, g: 1, b: 1, a: 0}
+    impact: 0
+    height: 0.75
+    mixture: 0.25
+    textureScale: 10

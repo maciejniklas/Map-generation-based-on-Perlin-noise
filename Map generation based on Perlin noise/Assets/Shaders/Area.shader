@@ -2,7 +2,8 @@
 {
 	Properties
 	{
-
+		mainTexture("Texture", 2D) = "white"{}
+		scale("Scale", Float) = 1
 	}
 	SubShader
 	{
@@ -10,45 +11,64 @@
 		LOD 200
 
 		CGPROGRAM
-		// Physically based Standard lighting model, and enable shadows on all light types
 		#pragma surface surf Standard fullforwardshadows
 
-		// Use shader model 3.0 target, to get nicer looking lighting
 		#pragma target 3.0
 
-		const static int maxColorAmount = 8;
+		const static int maxRegionsAmount = 8;
 
 		float minimalHeight;
 		float maximumHeight;
-		int colorsAmount;
-		float3 regionColors[maxColorAmount];
-		float regionHeights[maxColorAmount];
+		int regionsAmount;
+		float3 colors[maxRegionsAmount];
+		float heights[maxRegionsAmount];
+		float mixture[maxRegionsAmount];
+		float textureScales[maxRegionsAmount];
+		float impacts[maxRegionsAmount];
+		UNITY_DECLARE_TEX2DARRAY(regionsTexture);
 
-        struct Input
-        {
-            float2 worldPos;
-        };
+		sampler2D mainTexture;
+		float scale;
+
+		struct Input
+		{
+			float3 worldPos;
+			float3 worldNormal;
+		};
 
 		float InverseLerp(float start, float end, float value)
 		{
 			return saturate((value - start) / (end - start));
 		}
 
-        // Add instancing support for this shader. You need to check 'Enable Instancing' on materials that use the shader.
-        // See https://docs.unity3d.com/Manual/GPUInstancing.html for more information about instancing.
-        // #pragma instancing_options assumeuniformscaling
-        UNITY_INSTANCING_BUFFER_START(Props)
-            // put more per-instance properties here
-        UNITY_INSTANCING_BUFFER_END(Props)
+		float3 TriplanarMapping(float3 worldPos, float scale, float3 normal, int index)
+		{
+			float3 scaledWorldPos = worldPos / scale;
 
-        void surf (Input IN, inout SurfaceOutputStandard o)
-        {
+			float3 xProjection = UNITY_SAMPLE_TEX2DARRAY(regionsTexture, float3(scaledWorldPos.y, scaledWorldPos.z, index)) * normal.x;
+			float3 yProjection = UNITY_SAMPLE_TEX2DARRAY(regionsTexture, float3(scaledWorldPos.x, scaledWorldPos.z, index)) * normal.y;
+			float3 zProjection = UNITY_SAMPLE_TEX2DARRAY(regionsTexture, float3(scaledWorldPos.x, scaledWorldPos.y, index)) * normal.z;
+
+			return xProjection + yProjection + zProjection;
+		}
+
+		UNITY_INSTANCING_BUFFER_START(Props)
+			UNITY_INSTANCING_BUFFER_END(Props)
+
+			void surf(Input IN, inout SurfaceOutputStandard o)
+		{
 			float heightPercentagePosition = InverseLerp(minimalHeight, maximumHeight, IN.worldPos.y);
+			float3 absNormal = abs(IN.worldNormal);
+			absNormal /= absNormal.x + absNormal.y + absNormal.z;
 
-			for (int index = 0; index < colorsAmount; index++)
+			for (int index = 0; index < regionsAmount; index++)
 			{
-				float hasToPainted = saturate(sign(heightPercentagePosition - regionHeights[index]));
-				o.Albedo = o.Albedo * (1 - hasToPainted) + regionColors[index] * hasToPainted;
+				float hasToPainted = InverseLerp(-mixture[index] / 2 - 1E-4, mixture[index] / 2, heightPercentagePosition - heights[index]);
+
+				float3 color = colors[index] * impacts[index];
+				float3 textureColor = TriplanarMapping(IN.worldPos, textureScales[index], absNormal, index) * (1 - impacts[index]);
+
+				o.Albedo = o.Albedo * (1 - hasToPainted) + (color + textureColor) * hasToPainted;
 			}
         }
         ENDCG
