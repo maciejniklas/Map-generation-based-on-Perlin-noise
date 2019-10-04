@@ -18,6 +18,8 @@ public class NoiseAsset : UpdatableAsset
     public int seed;
     public Vector3 offset;
 
+#if UNITY_EDITOR
+
     protected override void OnValidate()
     {
         if (lacunarity < 1)
@@ -27,4 +29,6 @@ public class NoiseAsset : UpdatableAsset
 
         base.OnValidate();
     }
+
+#endif
 }

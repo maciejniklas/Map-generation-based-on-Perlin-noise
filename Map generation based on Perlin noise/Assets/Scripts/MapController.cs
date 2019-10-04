@@ -11,12 +11,17 @@ public class MapController : MonoBehaviour
     public NoiseAsset noiseAsset;
     public AreaAsset areaAsset;
     public TextureAsset textureAsset;
-    public DisplayMode displayMode;
     public Material areaMaterial;
 
     [Space(10)]
 
-    [Range(0, 4)] public int previevLOD = 1;
+    [Range(0, MeshController.availableResolutionsAmount - 1)] public int areaResolutionIndex;
+    [Range(0, MeshController.availableFlatshadedResolutionsAmount - 1)] public int areaFlatshadedResolutionIndex;
+
+    [Space(10)]
+
+    public DisplayMode displayMode;
+    [Range(0, MeshController.availableLODS - 1)] public int previevLOD = 1;
 
     [Space(10)]
 
@@ -32,13 +37,19 @@ public class MapController : MonoBehaviour
         {
             if(areaAsset.useFlatshading)
             {
-                return 95;
+                return MeshController.availableFlatshadedResolutions[areaFlatshadedResolutionIndex] - 1;
             }
             else
             {
-                return 239;
+                return MeshController.availableResolutions[areaResolutionIndex] - 1;
             }
         }
+    }
+
+    private void Awake()
+    {
+        textureAsset.AttachToMaterial(areaMaterial);
+        textureAsset.RefreshHeights(areaMaterial, areaAsset.minHeight, areaAsset.maxHeight);
     }
 
     private void OnValidate()
@@ -106,13 +117,13 @@ public class MapController : MonoBehaviour
             }
         }
 
-        textureAsset.RefreshHeights(areaMaterial, areaAsset.minHeight, areaAsset.maxHeight);
-
         return new MapDetails(noiseArea);
     }
 
     public void DisplayInEditor()
     {
+        textureAsset.RefreshHeights(areaMaterial, areaAsset.minHeight, areaAsset.maxHeight);
+
         MapHandler handler = FindObjectOfType<MapHandler>();
         MapDetails mapDetails = BuildMapDetails(Vector2.zero);
 

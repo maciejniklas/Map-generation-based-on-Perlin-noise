@@ -6,9 +6,11 @@ public class InfinityLandController : MonoBehaviour
 {
     private const float playerDistanceToUpdate = 25f;
     private const float sqrPlayerDistanceToUpdate = playerDistanceToUpdate * playerDistanceToUpdate;
+    private const float playerPositionToColliderGeneration = 5;
 
     public Transform player;
     public Material material;
+    public int colliderLODInedx;
     public LODDetails[] lodDetails;
 
     private int areaResolution;
@@ -19,14 +21,14 @@ public class InfinityLandController : MonoBehaviour
     public static Vector2 playerPosition;
     public static float viewRange;
     private static MapController mapController;
-    private static List<Area> lastUpdateareasCollection = new List<Area>();
+    private static List<Area> visibleAreasCollection = new List<Area>();
 
     private void Start()
     {
+        mapController = FindObjectOfType<MapController>();
         areaResolution = mapController.resolution - 1;
         viewRange = lodDetails[lodDetails.Length - 1].distance;
         visibleAreas = Mathf.RoundToInt(viewRange / areaResolution);
-        mapController = FindObjectOfType<MapController>();
 
         UpdateVisibleAreas();
     }
@@ -34,6 +36,14 @@ public class InfinityLandController : MonoBehaviour
     private void Update()
     {
         playerPosition = new Vector2(player.position.x, player.position.z) / mapController.areaAsset.scale;
+
+        if(playerPosition != lastPlayerPosition)
+        {
+            foreach(Area area in visibleAreasCollection)
+            {
+                area.UpdateCollider();
+            }
+        }
 
         if((lastPlayerPosition - playerPosition).sqrMagnitude > sqrPlayerDistanceToUpdate)
         {
@@ -44,11 +54,13 @@ public class InfinityLandController : MonoBehaviour
 
     private void UpdateVisibleAreas()
     {
-        for(int index = 0; index < lastUpdateareasCollection.Count; index++)
+        HashSet<Vector2> updatedAreasCoords = new HashSet<Vector2>();
+
+        for(int index = visibleAreasCollection.Count - 1; index >= 0; index--)
         {
-            lastUpdateareasCollection[index].SetVisible(false);
+            updatedAreasCoords.Add(visibleAreasCollection[index].coord);
+            visibleAreasCollection[index].UpdateArea();
         }
-        lastUpdateareasCollection.Clear();
 
         int areaCoordX = Mathf.RoundToInt(playerPosition.x / areaResolution);
         int areaCoordY = Mathf.RoundToInt(playerPosition.y / areaResolution);
@@ -59,13 +71,16 @@ public class InfinityLandController : MonoBehaviour
             {
                 Vector2 areaCoords = new Vector2(areaCoordX + xIndex, areaCoordY + yIndex);
 
-                if(areasCollection.ContainsKey(areaCoords))
+                if(!updatedAreasCoords.Contains(areaCoords))
                 {
-                    areasCollection[areaCoords].UpdateArea();
-                }
-                else
-                {
-                    areasCollection.Add(areaCoords, new Area(areaCoords, areaResolution, transform, material, lodDetails));
+                    if (areasCollection.ContainsKey(areaCoords))
+                    {
+                        areasCollection[areaCoords].UpdateArea();
+                    }
+                    else
+                    {
+                        areasCollection.Add(areaCoords, new Area(areaCoords, areaResolution, transform, material, lodDetails, colliderLODInedx));
+                    }
                 }
             }
         }
@@ -73,6 +88,8 @@ public class InfinityLandController : MonoBehaviour
 
     public class Area
     {
+        public Vector2 coord;
+
         private Vector2 position;
         private GameObject instance;
         private Bounds bounds;
@@ -84,9 +101,10 @@ public class InfinityLandController : MonoBehaviour
         private bool received;
         private int previousLODIndex = -1;
         private MeshCollider collider;
-        private LODMesh colliderMesh;
+        private int colliderLODIndex;
+        private bool hasCollider;
 
-        public Area(Vector2 coords, int resolution, Transform parent, Material material, LODDetails[] lodDetails)
+        public Area(Vector2 coords, int resolution, Transform parent, Material material, LODDetails[] lodDetails, int colliderLODIndex)
         {
             position = coords * resolution;
 
@@ -112,15 +130,19 @@ public class InfinityLandController : MonoBehaviour
 
             for(int index = 0; index < lodDetails.Length; index++)
             {
-                lodMeshes[index] = new LODMesh(lodDetails[index].lod, UpdateArea);
+                lodMeshes[index] = new LODMesh(lodDetails[index].lod);
+                lodMeshes[index].update += UpdateArea;
 
-                if(lodDetails[index].forCollider)
+                if(index == colliderLODIndex)
                 {
-                    colliderMesh = lodMeshes[index];
+                    lodMeshes[index].update += UpdateCollider;
                 }
             }
 
+            this.colliderLODIndex = colliderLODIndex;
             collider = instance.AddComponent<MeshCollider>();
+
+            this.coord = coords;
         }
 
         public bool IsVisible()
@@ -151,6 +173,8 @@ public class InfinityLandController : MonoBehaviour
             if(received)
             {
                 float distanceToPlayer = Mathf.Sqrt(bounds.SqrDistance(playerPosition));
+
+                bool wasVisible = IsVisible();
                 bool visible = distanceToPlayer <= viewRange;
 
                 if (visible)
@@ -184,22 +208,41 @@ public class InfinityLandController : MonoBehaviour
                         }
                     }
 
-                    if(lodIndex == 0)
-                    {
-                        if(colliderMesh.received)
-                        {
-                            collider.sharedMesh = colliderMesh.mesh;
-                        }
-                        else if(!colliderMesh.requested)
-                        {
-                            colliderMesh.RequestMesh(mapDetails);
-                        }
-                    }
-
-                    lastUpdateareasCollection.Add(this);
+                    visibleAreasCollection.Add(this);
                 }
 
-                SetVisible(visible);
+                if(wasVisible != visible)
+                {
+                    if(visible)
+                    {
+                        visibleAreasCollection.Add(this);
+                    }
+                    else
+                    {
+                        visibleAreasCollection.Remove(this);
+                    }
+
+                    SetVisible(visible);
+                }
+            }
+        }
+
+        public void UpdateCollider()
+        {
+            if(!hasCollider)
+            {
+                float sqrPlayerDistanceToBound = bounds.SqrDistance(playerPosition);
+
+                if (sqrPlayerDistanceToBound < lodDetails[colliderLODIndex].sqrDistance && !lodMeshes[colliderLODIndex].requested)
+                {
+                    lodMeshes[colliderLODIndex].RequestMesh(mapDetails);
+                }
+
+                if (sqrPlayerDistanceToBound < playerPositionToColliderGeneration * playerPositionToColliderGeneration && lodMeshes[colliderLODIndex].received)
+                {
+                    collider.sharedMesh = lodMeshes[colliderLODIndex].mesh;
+                    hasCollider = true;
+                } 
             }
         }
     }
@@ -210,12 +253,11 @@ public class InfinityLandController : MonoBehaviour
         public bool requested;
         public bool received;
         private int lod;
-        private System.Action update;
+        public System.Action update;
 
-        public LODMesh(int lod, System.Action updateCallback)
+        public LODMesh(int lod)
         {
             this.lod = lod;
-            update = updateCallback;
         }
 
         private void OnMeshDetailsReceived(MeshDetails meshDetails)
@@ -235,8 +277,15 @@ public class InfinityLandController : MonoBehaviour
     [System.Serializable]
     public struct LODDetails
     {
-        public int lod;
+        [Range(0, MeshController.availableLODS - 1)] public int lod;
         public float distance;
-        public bool forCollider;
+
+        public float sqrDistance
+        {
+            get
+            {
+                return distance * distance;
+            }
+        }
     };
 }

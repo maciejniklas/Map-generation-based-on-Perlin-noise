@@ -4,6 +4,12 @@ using UnityEngine;
 
 public static class MeshController
 {
+    public const int availableLODS = 5;
+    public const int availableResolutionsAmount = 9;
+    public const int availableFlatshadedResolutionsAmount = 3;
+    public static readonly int[] availableResolutions = { 48, 72, 96, 120, 144, 168, 192, 216, 240 };
+    public static readonly int[] availableFlatshadedResolutions = { 48, 72, 96 };
+
     public static MeshDetails GenerateMesh(float[,] noiseArea, float multiplier, AnimationCurve curve, int lod, bool flatshading)
     {
         int lodIncrement = lod == 0 ? 1 : lod * 2;
