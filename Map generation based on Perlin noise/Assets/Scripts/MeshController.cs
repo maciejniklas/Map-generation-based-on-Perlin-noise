@@ -4,27 +4,20 @@ using UnityEngine;
 
 public static class MeshController
 {
-    public const int availableLODS = 5;
-    public const int availableResolutionsAmount = 9;
-    public const int availableFlatshadedResolutionsAmount = 3;
-    public static readonly int[] availableResolutions = { 48, 72, 96, 120, 144, 168, 192, 216, 240 };
-    public static readonly int[] availableFlatshadedResolutions = { 48, 72, 96 };
-
-    public static MeshDetails GenerateMesh(float[,] noiseArea, float multiplier, AnimationCurve curve, int lod, bool flatshading)
+    public static MeshDetails GenerateMesh(float[,] noiseArea, int lod, AreaSettings areaSettings)
     {
         int lodIncrement = lod == 0 ? 1 : lod * 2;
 
         int frontierResolution = noiseArea.GetLength(0);
         int meshResolution = frontierResolution - 2 * lodIncrement;
-        int meshResolutionUnnormalized = frontierResolution - 2;
+        int meshResolutionNormalized = frontierResolution - 2;
 
-        float topLeftX = (meshResolutionUnnormalized - 1) / -2f;
-        float topLeftZ = (meshResolutionUnnormalized - 1) / 2f;
+        float topLeftX = (meshResolutionNormalized - 1) / -2f;
+        float topLeftZ = (meshResolutionNormalized - 1) / 2f;
 
         int verticesInRow = (meshResolution - 1) / lodIncrement + 1;
 
-        MeshDetails meshDetails = new MeshDetails(verticesInRow, flatshading);
-        AnimationCurve mapHeightCurve = new AnimationCurve(curve.keys);
+        MeshDetails meshDetails = new MeshDetails(verticesInRow, areaSettings.useFlatshading);
 
         int[,] vertexIndexes = new int[frontierResolution, frontierResolution];
         int meshVertexIndex = 0;
@@ -56,7 +49,7 @@ public static class MeshController
                 int vertexIndex = vertexIndexes[xIndex, yIndex];
 
                 Vector2 uv = new Vector2((xIndex - lodIncrement) / (float)meshResolution, (yIndex - lodIncrement) / (float)meshResolution);
-                Vector3 vertexCoords = new Vector3(topLeftX + uv.x * meshResolutionUnnormalized, mapHeightCurve.Evaluate(noiseArea[xIndex, yIndex]) * multiplier, topLeftZ - uv.y * meshResolutionUnnormalized);
+                Vector3 vertexCoords = new Vector3((topLeftX + uv.x * meshResolutionNormalized) * areaSettings.scale, noiseArea[xIndex, yIndex], (topLeftZ - uv.y * meshResolutionNormalized) * areaSettings.scale);
 
                 meshDetails.AddVertex(vertexCoords, uv, vertexIndex);
 

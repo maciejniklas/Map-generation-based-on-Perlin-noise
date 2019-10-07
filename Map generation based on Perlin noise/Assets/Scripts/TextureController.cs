@@ -15,9 +15,9 @@ public static class TextureController
         return texture;
     }
 
-    public static Texture2D GenerateFromNoise(float[,] noiseArea)
+    public static Texture2D GenerateFromNoise(NoiseArea noiseArea)
     {
-        int resolution = noiseArea.GetLength(0);
+        int resolution = noiseArea.values.GetLength(0);
         Texture2D texture = new Texture2D(resolution, resolution);
 
         Color[] mapColors = new Color[resolution * resolution];
@@ -26,7 +26,7 @@ public static class TextureController
         {
             for (int xIndex = 0; xIndex < resolution; xIndex++)
             {
-                mapColors[yIndex * resolution + xIndex] = Color.Lerp(Color.black, Color.white, noiseArea[xIndex, yIndex]);
+                mapColors[yIndex * resolution + xIndex] = Color.Lerp(Color.black, Color.white, Mathf.InverseLerp(noiseArea.minValue, noiseArea.maxValue, noiseArea.values[xIndex, yIndex]));
             }
         }
 

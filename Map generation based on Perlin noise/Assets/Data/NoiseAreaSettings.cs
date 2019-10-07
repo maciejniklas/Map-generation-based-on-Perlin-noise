@@ -3,20 +3,30 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu()]
-public class AreaAsset : UpdatableAsset
+public class NoiseAreaSettings : UpdatableAsset
 {
-    public float scale = 1f;
+    public NoiseSettings noiseSettings;
+
     public float heightMultiplier;
     public AnimationCurve curve;
-
     public bool useFalloff = false;
-    public bool useFlatshading = false;
+
+#if UNITY_EDITOR
+
+    protected override void OnValidate()
+    {
+        noiseSettings.Validate();
+
+        base.OnValidate();
+    }
+
+#endif
 
     public float minHeight
     {
         get
         {
-            return scale * heightMultiplier * curve.Evaluate(0);
+            return heightMultiplier * curve.Evaluate(0);
         }
     }
 
@@ -24,7 +34,7 @@ public class AreaAsset : UpdatableAsset
     {
         get
         {
-            return scale * heightMultiplier * curve.Evaluate(1);
+            return heightMultiplier * curve.Evaluate(1);
         }
     }
 }

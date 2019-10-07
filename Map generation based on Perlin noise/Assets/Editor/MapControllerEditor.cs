@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-[CustomEditor(typeof(MapController))]
-public class MapControllerEditor : Editor
+[CustomEditor(typeof(MapHandler))]
+public class MapHandlerEditor : Editor
 {
     public override void OnInspectorGUI()
     {
-        MapController controller = (MapController)target;
+        MapHandler controller = (MapHandler)target;
 
         if(DrawDefaultInspector() && controller.autoUpdate)
         {
