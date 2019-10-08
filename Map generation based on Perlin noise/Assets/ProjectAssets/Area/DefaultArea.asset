@@ -15,5 +15,5 @@ MonoBehaviour:
   autoUpdate: 1
   scale: 1
   useFlatshading: 0
-  areaResolutionIndex: 1
+  areaResolutionIndex: 3
   areaFlatshadedResolutionIndex: 0

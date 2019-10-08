@@ -20,7 +20,7 @@ public class AreaSettings : UpdatableAsset
     {
         get
         {
-            return availableResolutions[useFlatshading ? areaFlatshadedResolutionIndex : areaResolutionIndex] + 1;
+            return availableResolutions[useFlatshading ? areaFlatshadedResolutionIndex : areaResolutionIndex] + 5;
         }
     }
 
