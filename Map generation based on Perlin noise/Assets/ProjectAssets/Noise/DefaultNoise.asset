@@ -13,16 +13,16 @@ MonoBehaviour:
   m_Name: DefaultNoise
   m_EditorClassIdentifier: 
   autoUpdate: 1
-  noiseSettings:
+  noiseDetails:
     type: 1
     heightMode: 1
-    scale: 50
+    scale: 100
     dimension: 2
-    octaves: 4
+    octaves: 6
     persistance: 0.5
     lacunarity: 2
-    seed: 0
-    offset: {x: 0, y: -0, z: 0}
+    seed: 1
+    offset: {x: 0, y: -0}
   heightMultiplier: 50
   curve:
     serializedVersion: 2

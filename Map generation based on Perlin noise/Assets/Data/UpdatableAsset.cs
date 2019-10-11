@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class UpdatableAsset : ScriptableObject
 {
@@ -20,10 +18,7 @@ public class UpdatableAsset : ScriptableObject
     public void Notify()
     {
         UnityEditor.EditorApplication.update -= Notify;
-        if (onDataUpdate != null)
-        {
-            onDataUpdate();
-        }
+        onDataUpdate();
     }
 
 #endif

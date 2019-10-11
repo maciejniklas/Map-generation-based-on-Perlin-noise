@@ -1,11 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 [CreateAssetMenu()]
-public class AreaSettings : UpdatableAsset
+public class AreaDetails : UpdatableAsset
 {
-    public const int availableLODS = 5;
+    public const int availableLODs = 5;
     public const int availableResolutionsAmount = 9;
     public const int availableFlatshadedResolutionsAmount = 3;
     public static readonly int[] availableResolutions = { 48, 72, 96, 120, 144, 168, 192, 216, 240 };
@@ -15,7 +13,7 @@ public class AreaSettings : UpdatableAsset
     [Range(0, availableResolutionsAmount - 1)] public int areaResolutionIndex;
     [Range(0, availableFlatshadedResolutionsAmount - 1)] public int areaFlatshadedResolutionIndex;
 
-    // Includes 2 vertices that we use to calculate normals
+    // +1 because of the0 vertex, +4 because of generating triangles in the boundaries of map area to avoid mismatch of areas with different LODs
     public int verticesPerLine
     {
         get
@@ -24,6 +22,7 @@ public class AreaSettings : UpdatableAsset
         }
     }
 
+    // Includes 2 vertices that we use to calculate normals
     public float resolution
     {
         get

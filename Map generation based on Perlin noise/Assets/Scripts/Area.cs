@@ -1,10 +1,8 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Area
 {
-    private const float playerPositionToColliderGeneration = 5;
+    private const float playerDistanceToColliderGeneration = 5;
 
     public Vector2 coords;
     public event System.Action<Area, bool> onVisibilityChange;
@@ -16,14 +14,14 @@ public class Area
     private MeshFilter meshFilter;
     private LODDetails[] lodDetails;
     private LODMesh[] lodMeshes;
-    private NoiseArea noiseArea;
+    private AreaNoise areaNoise;
     private bool received;
     private int previousLODIndex = -1;
     private MeshCollider collider;
     private int colliderLODIndex;
     private bool hasCollider;
-    private NoiseAreaSettings noiseAreaSettings;
-    private AreaSettings areaSettings;
+    private AreaNoiseDetails areaNoiseDetails;
+    private AreaDetails areaDetails;
     private Transform player;
     private float viewRange;
 
@@ -35,20 +33,20 @@ public class Area
         }
     }
 
-    public Area(Vector2 coords, Transform parent, Material material, LODDetails[] lodDetails, int colliderLODIndex, NoiseAreaSettings noiseAreaSettings, AreaSettings areaSettings, Transform player)
+    public Area(Vector2 coords, Transform parent, Material material, LODDetails[] lodDetails, int colliderLODIndex, AreaNoiseDetails areaNoiseDetails, AreaDetails areaDetails, Transform player)
     {
-        this.noiseAreaSettings = noiseAreaSettings;
-        this.areaSettings = areaSettings;
+        this.areaNoiseDetails = areaNoiseDetails;
+        this.areaDetails = areaDetails;
 
-        center = coords * areaSettings.resolution / areaSettings.scale;
+        center = coords * areaDetails.resolution / areaDetails.scale;
 
-        Vector3 position = coords * areaSettings.resolution;
+        Vector3 position = coords * areaDetails.resolution;
 
-        instance = new GameObject("Area");
+        instance = new GameObject("Area" + parent.childCount);
         instance.transform.position = new Vector3(position.x, 0, position.y);
         instance.transform.parent = parent;
 
-        bounds = new Bounds(position, Vector2.one * areaSettings.resolution);
+        bounds = new Bounds(position, Vector2.one * areaDetails.resolution);
 
         SetVisible(false);
 
@@ -83,9 +81,9 @@ public class Area
         return instance.activeSelf;
     }
 
-    private void OnNoiseAreaReceived(object noiseArea)
+    private void OnAreaNoiseReceived(object areaNoise)
     {
-        this.noiseArea = (NoiseArea)noiseArea;
+        this.areaNoise = (AreaNoise)areaNoise;
         received = true;
 
         UpdateArea();
@@ -98,7 +96,7 @@ public class Area
 
     public void Load()
     {
-        ThreadHandler.RequestDetails(() => NoiseController.BuildNoiseArea(areaSettings.verticesPerLine, noiseAreaSettings, center), OnNoiseAreaReceived);
+        ThreadHandler.RequestDetails(() => NoiseController.BuildNoiseArea(areaDetails.verticesPerLine, areaNoiseDetails, center), OnAreaNoiseReceived);
     }
 
     public void SetVisible(bool visible)
@@ -142,7 +140,7 @@ public class Area
                     }
                     else if (!lodMesh.requested)
                     {
-                        lodMesh.RequestMesh(noiseArea, areaSettings);
+                        lodMesh.RequestMesh(areaNoise, areaDetails);
                     }
                 }
             }
@@ -150,10 +148,7 @@ public class Area
             if (wasVisible != visible)
             {
                 SetVisible(visible);
-                if (onVisibilityChange != null)
-                {
-                    onVisibilityChange(this, visible);
-                }
+                onVisibilityChange(this, visible);
             }
         }
     }
@@ -166,10 +161,10 @@ public class Area
 
             if (sqrPlayerDistanceToBound < lodDetails[colliderLODIndex].sqrDistance && !lodMeshes[colliderLODIndex].requested)
             {
-                lodMeshes[colliderLODIndex].RequestMesh(noiseArea, areaSettings);
+                lodMeshes[colliderLODIndex].RequestMesh(areaNoise, areaDetails);
             }
 
-            if (sqrPlayerDistanceToBound < playerPositionToColliderGeneration * playerPositionToColliderGeneration && lodMeshes[colliderLODIndex].received)
+            if (sqrPlayerDistanceToBound < playerDistanceToColliderGeneration * playerDistanceToColliderGeneration && lodMeshes[colliderLODIndex].received)
             {
                 collider.sharedMesh = lodMeshes[colliderLODIndex].mesh;
                 hasCollider = true;
@@ -197,10 +192,10 @@ public class Area
             update();
         }
 
-        public void RequestMesh(NoiseArea noiseArea, AreaSettings areaSettings)
+        public void RequestMesh(AreaNoise noiseArea, AreaDetails areaSettings)
         {
             requested = true;
-            ThreadHandler.RequestDetails(() => MeshController.GenerateMesh(noiseArea.values, lod, areaSettings), OnMeshDetailsReceived);
+            ThreadHandler.RequestDetails(() => MeshController.BuildMesh(noiseArea.area, lod, areaSettings), OnMeshDetailsReceived);
         }
     }
 }

@@ -53,20 +53,20 @@
 		}
 
 		UNITY_INSTANCING_BUFFER_START(Props)
-			UNITY_INSTANCING_BUFFER_END(Props)
+		UNITY_INSTANCING_BUFFER_END(Props)
 
-			void surf(Input IN, inout SurfaceOutputStandard o)
+		void surf(Input IN, inout SurfaceOutputStandard o)
 		{
-			float heightPercentagePosition = InverseLerp(minimalHeight, maximumHeight, IN.worldPos.y);
-			float3 absNormal = abs(IN.worldNormal);
-			absNormal /= absNormal.x + absNormal.y + absNormal.z;
+			float heightUV = InverseLerp(minimalHeight, maximumHeight, IN.worldPos.y);
+			float3 absoluteNormal = abs(IN.worldNormal);
+			absoluteNormal /= absoluteNormal.x + absoluteNormal.y + absoluteNormal.z;
 
 			for (int index = 0; index < regionsAmount; index++)
 			{
-				float hasToPainted = InverseLerp(-mixture[index] / 2 - 1E-4, mixture[index] / 2, heightPercentagePosition - heights[index]);
+				float hasToPainted = InverseLerp(-mixture[index] / 2 - 1E-4, mixture[index] / 2, heightUV - heights[index]);
 
 				float3 color = colors[index] * impacts[index];
-				float3 textureColor = TriplanarMapping(IN.worldPos, textureScales[index], absNormal, index) * (1 - impacts[index]);
+				float3 textureColor = TriplanarMapping(IN.worldPos, textureScales[index], absoluteNormal, index) * (1 - impacts[index]);
 
 				o.Albedo = o.Albedo * (1 - hasToPainted) + (color + textureColor) * hasToPainted;
 			}

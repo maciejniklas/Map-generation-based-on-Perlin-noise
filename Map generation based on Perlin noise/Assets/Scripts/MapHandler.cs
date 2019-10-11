@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class MapHandler : MonoBehaviour
 {
@@ -10,15 +8,15 @@ public class MapHandler : MonoBehaviour
 
     public enum DisplayMode { Noise, Mesh, Falloff };
 
-    public NoiseAreaSettings noiseAreaSettings;
-    public AreaSettings areaSettings;
-    public TextureAsset textureAsset;
+    public AreaNoiseDetails areaNoiseDetails;
+    public AreaDetails areaDetails;
+    public TextureDetails textureDetails;
     public Material areaMaterial;
 
     [Space(10)]
 
     public DisplayMode displayMode;
-    [Range(0, AreaSettings.availableLODS - 1)] public int previevLOD = 1;
+    [Range(0, AreaDetails.availableLODs - 1)] public int previevLOD = 1;
 
     [Space(10)]
 
@@ -26,31 +24,31 @@ public class MapHandler : MonoBehaviour
 
     private void OnValidate()
     {
-        if (areaSettings != null)
+        if (areaDetails != null)
         {
-            areaSettings.onDataUpdate -= OnDataUpdate;
-            areaSettings.onDataUpdate += OnDataUpdate;
+            areaDetails.onDataUpdate -= OnDataUpdate;
+            areaDetails.onDataUpdate += OnDataUpdate;
         }
 
-        if (noiseAreaSettings != null)
+        if (areaNoiseDetails != null)
         {
-            noiseAreaSettings.onDataUpdate -= OnDataUpdate;
-            noiseAreaSettings.onDataUpdate += OnDataUpdate;
+            areaNoiseDetails.onDataUpdate -= OnDataUpdate;
+            areaNoiseDetails.onDataUpdate += OnDataUpdate;
         }
 
-        if (textureAsset != null)
+        if (textureDetails != null)
         {
-            textureAsset.onDataUpdate -= OnTextureUpdate;
-            textureAsset.onDataUpdate += OnTextureUpdate;
+            textureDetails.onDataUpdate -= OnTextureUpdate;
+            textureDetails.onDataUpdate += OnTextureUpdate;
         }
     }
 
     public void DisplayInEditor()
     {
-        textureAsset.AttachToMaterial(areaMaterial);
-        textureAsset.RefreshHeights(areaMaterial, noiseAreaSettings.minHeight, noiseAreaSettings.maxHeight);
+        textureDetails.AttachToMaterial(areaMaterial);
+        textureDetails.RefreshHeights(areaMaterial, areaNoiseDetails.minHeight, areaNoiseDetails.maxHeight);
 
-        NoiseArea noiseArea = NoiseController.BuildNoiseArea(areaSettings.verticesPerLine, noiseAreaSettings, Vector3.zero);
+        AreaNoise noiseArea = NoiseController.BuildNoiseArea(areaDetails.verticesPerLine, areaNoiseDetails, Vector2.zero);
 
         if (displayMode == DisplayMode.Noise)
         {
@@ -58,11 +56,11 @@ public class MapHandler : MonoBehaviour
         }
         else if (displayMode == DisplayMode.Mesh)
         {
-            DisplayMesh(MeshController.GenerateMesh(noiseArea.values, previevLOD, areaSettings));
+            DisplayMesh(MeshController.BuildMesh(noiseArea.area, previevLOD, areaDetails));
         }
         else if (displayMode == DisplayMode.Falloff)
         {
-            DisplayMap(TextureController.GenerateFromNoise(new NoiseArea(FalloffController.GenerateFalloffArea(areaSettings.verticesPerLine), 0, 1)));
+            DisplayMap(TextureController.GenerateFromNoise(new AreaNoise(FalloffController.GenerateFalloffArea(areaDetails.verticesPerLine), 0, 1)));
         }
     }
 
@@ -94,6 +92,6 @@ public class MapHandler : MonoBehaviour
 
     private void OnTextureUpdate()
     {
-        textureAsset.AttachToMaterial(areaMaterial);
+        textureDetails.AttachToMaterial(areaMaterial);
     }
 }

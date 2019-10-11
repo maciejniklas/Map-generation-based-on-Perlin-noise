@@ -1,49 +1,48 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public static class NoiseController
 {
-    public static NoiseArea BuildNoiseArea(int resolution, NoiseAreaSettings settings, Vector3 center)
+    public static AreaNoise BuildNoiseArea(int size, AreaNoiseDetails areaNoiseDetails, Vector2 center)
     {
-        float[,] values = Noise.GenerateNoiseArea(resolution, settings.noiseSettings, center);
+        float[,] area = Noise.GenerateAreaValues(size, areaNoiseDetails.noiseDetails, center);
 
-        AnimationCurve threadCurve = new AnimationCurve(settings.curve.keys);
+        // Curve copy for every thread to avoid accessing it in same time
+        AnimationCurve threadCurve = new AnimationCurve(areaNoiseDetails.curve.keys);
 
-        float minValue = float.MaxValue;
-        float maxValue = float.MinValue;
+        float minHeight = float.MaxValue;
+        float maxHeight = float.MinValue;
 
-        for(int yIndex = 0; yIndex < resolution; yIndex++)
+        for(int yIndex = 0; yIndex < size; yIndex++)
         {
-            for(int xIndex = 0; xIndex < resolution; xIndex++)
+            for(int xIndex = 0; xIndex < size; xIndex++)
             {
-                values[xIndex, yIndex] *= threadCurve.Evaluate(values[xIndex, yIndex]) * settings.heightMultiplier;
+                area[xIndex, yIndex] *= threadCurve.Evaluate(area[xIndex, yIndex]) * areaNoiseDetails.heightMultiplier;
 
-                if(values[xIndex,yIndex] < minValue)
+                if(area[xIndex,yIndex] < minHeight)
                 {
-                    minValue = values[xIndex, yIndex];
+                    minHeight = area[xIndex, yIndex];
                 }
-                if(values[xIndex,yIndex] > maxValue)
+                if(area[xIndex,yIndex] > maxHeight)
                 {
-                    maxValue = values[xIndex, yIndex];
+                    maxHeight = area[xIndex, yIndex];
                 }
             }
         }
 
-        return new NoiseArea(values, minValue, maxValue);
+        return new AreaNoise(area, minHeight, maxHeight);
     }
 }
 
-public struct NoiseArea
+public struct AreaNoise
 {
-    public readonly float[,] values;
-    public readonly float minValue;
-    public readonly float maxValue;
+    public readonly float[,] area;
+    public readonly float minHeight;
+    public readonly float maxHeight;
 
-    public NoiseArea(float[,] values, float minValue, float maxValue)
+    public AreaNoise(float[,] values, float minHeight, float maxHeight)
     {
-        this.values = values;
-        this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.area = values;
+        this.minHeight = minHeight;
+        this.maxHeight = maxHeight;
     }
 };

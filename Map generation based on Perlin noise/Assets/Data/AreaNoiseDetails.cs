@@ -1,11 +1,9 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 [CreateAssetMenu()]
-public class NoiseAreaSettings : UpdatableAsset
+public class AreaNoiseDetails : UpdatableAsset
 {
-    public NoiseSettings noiseSettings;
+    public NoiseDetials noiseDetails;
 
     public float heightMultiplier;
     public AnimationCurve curve;
@@ -15,7 +13,7 @@ public class NoiseAreaSettings : UpdatableAsset
 
     protected override void OnValidate()
     {
-        noiseSettings.Validate();
+        noiseDetails.Validate();
 
         base.OnValidate();
     }

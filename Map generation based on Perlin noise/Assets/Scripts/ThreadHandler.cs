@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 using UnityEngine;
@@ -8,7 +7,7 @@ public class ThreadHandler : MonoBehaviour
 {
     private static ThreadHandler instance;
 
-    private Queue<ThreadDetails> detailsCollection = new Queue<ThreadDetails>();
+    private Queue<ThreadDetails> threadDetailsCollection = new Queue<ThreadDetails>();
 
     private void Awake()
     {
@@ -17,11 +16,11 @@ public class ThreadHandler : MonoBehaviour
 
     private void Update()
     {
-        if (detailsCollection.Count > 0)
+        if (threadDetailsCollection.Count > 0)
         {
-            for (int index = 0; index < detailsCollection.Count; index++)
+            for (int index = 0; index < threadDetailsCollection.Count; index++)
             {
-                ThreadDetails threadDetails = detailsCollection.Dequeue();
+                ThreadDetails threadDetails = threadDetailsCollection.Dequeue();
                 threadDetails.callback(threadDetails.variable);
             }
         }
@@ -31,9 +30,9 @@ public class ThreadHandler : MonoBehaviour
     {
         object data = buildData();
 
-        lock (detailsCollection)
+        lock (threadDetailsCollection)
         {
-            detailsCollection.Enqueue(new ThreadDetails(callback, data));
+            threadDetailsCollection.Enqueue(new ThreadDetails(callback, data));
         }
     }
 

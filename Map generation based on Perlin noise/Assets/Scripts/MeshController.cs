@@ -4,32 +4,32 @@ using UnityEngine;
 
 public static class MeshController
 {
-    public static MeshDetails GenerateMesh(float[,] noiseArea, int lod, AreaSettings areaSettings)
+    public static MeshDetails BuildMesh(float[,] noiseArea, int lod, AreaDetails areaDetails)
     {
         int lodIncrement = lod == 0 ? 1 : lod * 2;
-        int verticesPerLine = areaSettings.verticesPerLine;
+        int verticesPerLine = areaDetails.verticesPerLine;
 
-        Vector2 topLeft = new Vector2(-1, 1) * areaSettings.resolution / 2f;
+        Vector2 topLeftCorner = new Vector2(-1, 1) * areaDetails.resolution / 2f;
 
-        MeshDetails meshDetails = new MeshDetails(verticesPerLine, areaSettings.useFlatshading, lodIncrement);
+        MeshDetails meshDetails = new MeshDetails(verticesPerLine, areaDetails.useFlatshading, lodIncrement);
 
         int[,] vertexIndexes = new int[verticesPerLine, verticesPerLine];
         int meshVertexIndex = 0;
-        int outsideMeshIndex = -1;
+        int outsideVertexIndex = -1;
 
         for(int yIndex = 0; yIndex < verticesPerLine; yIndex++)
         {
             for(int xIndex = 0; xIndex < verticesPerLine; xIndex++)
             {
-                bool isOutsideMesh = yIndex == 0 || xIndex == 0 || yIndex == verticesPerLine - 1 || xIndex == verticesPerLine - 1;
-                bool isSkippedVertex = xIndex > 2 && xIndex < verticesPerLine - 3 && yIndex > 2 && yIndex < verticesPerLine - 3 && ((xIndex - 2) % lodIncrement != 0 || (yIndex - 2) % lodIncrement != 0);
+                bool isOutsideVertex = yIndex == 0 || xIndex == 0 || yIndex == verticesPerLine - 1 || xIndex == verticesPerLine - 1;
+                bool isUselessVertex = xIndex > 2 && xIndex < verticesPerLine - 3 && yIndex > 2 && yIndex < verticesPerLine - 3 && ((xIndex - 2) % lodIncrement != 0 || (yIndex - 2) % lodIncrement != 0);
 
-                if(isOutsideMesh)
+                if(isOutsideVertex)
                 {
-                    vertexIndexes[xIndex, yIndex] = outsideMeshIndex;
-                    outsideMeshIndex--;
+                    vertexIndexes[xIndex, yIndex] = outsideVertexIndex;
+                    outsideVertexIndex--;
                 }
-                else if(!isSkippedVertex)
+                else if(!isUselessVertex)
                 {
                     vertexIndexes[xIndex, yIndex] = meshVertexIndex;
                     meshVertexIndex++;
@@ -41,22 +41,22 @@ public static class MeshController
         {
             for(int xIndex = 0; xIndex < verticesPerLine; xIndex++)
             {
-                bool isSkippedVertex = xIndex > 2 && xIndex < verticesPerLine - 3 && yIndex > 2 && yIndex < verticesPerLine - 3 && ((xIndex - 2) % lodIncrement != 0 || (yIndex - 2) % lodIncrement != 0);
+                bool isUselessVertex = xIndex > 2 && xIndex < verticesPerLine - 3 && yIndex > 2 && yIndex < verticesPerLine - 3 && ((xIndex - 2) % lodIncrement != 0 || (yIndex - 2) % lodIncrement != 0);
 
-                if(!isSkippedVertex)
+                if(!isUselessVertex)
                 {
-                    bool isOutsideMesh = yIndex == 0 || xIndex == 0 || yIndex == verticesPerLine - 1 || xIndex == verticesPerLine - 1;
-                    bool isMeshEdge = (yIndex == 1 || yIndex == verticesPerLine - 2 || xIndex == 1 || xIndex == verticesPerLine - 2) && !isOutsideMesh;
-                    bool isMainVertex = (xIndex - 2) % lodIncrement == 0 && (yIndex - 2) % lodIncrement == 0 && !isOutsideMesh && !isMeshEdge;
-                    bool isConnectionVertex = (yIndex == 2 || yIndex == verticesPerLine - 3 || xIndex == 2 || xIndex == verticesPerLine - 3) && !isOutsideMesh && !isMeshEdge && !isMainVertex;
+                    bool isOutsideVertex = yIndex == 0 || xIndex == 0 || yIndex == verticesPerLine - 1 || xIndex == verticesPerLine - 1;
+                    bool isFrontierVertex = (yIndex == 1 || yIndex == verticesPerLine - 2 || xIndex == 1 || xIndex == verticesPerLine - 2) && !isOutsideVertex;
+                    bool isMainVertex = (xIndex - 2) % lodIncrement == 0 && (yIndex - 2) % lodIncrement == 0 && !isOutsideVertex && !isFrontierVertex;
+                    bool isInsideVertex = (yIndex == 2 || yIndex == verticesPerLine - 3 || xIndex == 2 || xIndex == verticesPerLine - 3) && !isOutsideVertex && !isFrontierVertex && !isMainVertex;
 
                     int vertexIndex = vertexIndexes[xIndex, yIndex];
 
                     Vector2 uv = new Vector2(xIndex - 1, yIndex - 1) / (verticesPerLine - 3);
-                    Vector2 vertexCoords = topLeft + new Vector2(uv.x, -uv.y) * areaSettings.resolution;
+                    Vector2 vertexCoords = topLeftCorner + new Vector2(uv.x, -uv.y) * areaDetails.resolution;
                     float height = noiseArea[xIndex, yIndex];
 
-                    if (isConnectionVertex)
+                    if (isInsideVertex)
                     {
                         bool isVertical = xIndex == 2 || xIndex == verticesPerLine - 3;
 
@@ -73,7 +73,7 @@ public static class MeshController
 
                     meshDetails.AddVertex(new Vector3(vertexCoords.x, height, vertexCoords.y), uv, vertexIndex);
 
-                    bool createTriangle = xIndex < verticesPerLine - 1 && yIndex < verticesPerLine - 1 && (!isConnectionVertex || (xIndex != 2 && yIndex != 2));
+                    bool createTriangle = xIndex < verticesPerLine - 1 && yIndex < verticesPerLine - 1 && (!isInsideVertex || (xIndex != 2 && yIndex != 2));
 
                     if (createTriangle)
                     {
@@ -102,8 +102,8 @@ public class MeshDetails
     private Vector3[] vertices;
     private int[] triangles;
     private Vector2[] uvs;
-    private Vector3[] outsideMeshVertices;
-    private int[] outsideMeshTriangles;
+    private Vector3[] outsideVertices;
+    private int[] outsideTriangles;
     private Vector3[] normals;
 
     private int currentTriangleIndex;
@@ -112,39 +112,39 @@ public class MeshDetails
 
     public MeshDetails(int verticesPerLine, bool useFlatshading, int lodIncrement)
     {
-        int meshEdgeVertices = (verticesPerLine - 2) * 4 - 4;
-        int edgeConnectionVertices = (lodIncrement - 1) * (verticesPerLine - 5) / lodIncrement * 4;
+        int frontierVertices = (verticesPerLine - 2) * 4 - 4;
+        int insideVertices = (lodIncrement - 1) * (verticesPerLine - 5) / lodIncrement * 4;
         int mainVericesPerLine = (verticesPerLine - 5) / lodIncrement + 1;
         int mainVertices = mainVericesPerLine * mainVericesPerLine;
 
-        vertices = new Vector3[meshEdgeVertices + edgeConnectionVertices + mainVertices];
+        vertices = new Vector3[frontierVertices + insideVertices + mainVertices];
         uvs = new Vector2[vertices.Length];
 
         int meshEdgeTriangles = 8 * (verticesPerLine - 4);
         int mainTriangles = (mainVericesPerLine - 1) * (mainVericesPerLine - 1) * 2;
         triangles = new int[(meshEdgeTriangles + mainTriangles) * 3];
 
-        outsideMeshVertices = new Vector3[verticesPerLine * 4 - 4];
-        outsideMeshTriangles = new int[24 * (verticesPerLine - 2)];
+        outsideVertices = new Vector3[verticesPerLine * 4 - 4];
+        outsideTriangles = new int[24 * (verticesPerLine - 2)];
 
         this.useFlatshading = useFlatshading;
     }
 
-    public void AddTriangle(int vertexIndexA, int vertexIndexB, int vertexIndexC)
+    public void AddTriangle(int vertexAIndex, int vertexBIndex, int vertexCIndex)
     {
-        if(vertexIndexA < 0 || vertexIndexB < 0 || vertexIndexC < 0)
+        if(vertexAIndex < 0 || vertexBIndex < 0 || vertexCIndex < 0)
         {
-            outsideMeshTriangles[currentOutsideTriangleIndex] = vertexIndexA;
-            outsideMeshTriangles[currentOutsideTriangleIndex + 1] = vertexIndexB;
-            outsideMeshTriangles[currentOutsideTriangleIndex + 2] = vertexIndexC;
+            outsideTriangles[currentOutsideTriangleIndex] = vertexAIndex;
+            outsideTriangles[currentOutsideTriangleIndex + 1] = vertexBIndex;
+            outsideTriangles[currentOutsideTriangleIndex + 2] = vertexCIndex;
 
             currentOutsideTriangleIndex += 3;
         }
         else
         {
-            triangles[currentTriangleIndex] = vertexIndexA;
-            triangles[currentTriangleIndex + 1] = vertexIndexB;
-            triangles[currentTriangleIndex + 2] = vertexIndexC;
+            triangles[currentTriangleIndex] = vertexAIndex;
+            triangles[currentTriangleIndex + 1] = vertexBIndex;
+            triangles[currentTriangleIndex + 2] = vertexCIndex;
 
             currentTriangleIndex += 3;
         }
@@ -154,7 +154,7 @@ public class MeshDetails
     {
         if(vertexIndex < 0)
         {
-            outsideMeshVertices[-vertexIndex - 1] = vertexCoords;
+            outsideVertices[-vertexIndex - 1] = vertexCoords;
         }
         else
         {
@@ -235,15 +235,15 @@ public class MeshDetails
             normals[vertexCIndex] += normal;
         }
 
-        int frontierTrianglesAmount = outsideMeshTriangles.Length / 3;
+        int frontierTrianglesAmount = outsideTriangles.Length / 3;
 
         for(int index = 0; index < frontierTrianglesAmount; index++)
         {
             int triangleIndex = index * 3;
 
-            int vertexAIndex = outsideMeshTriangles[triangleIndex];
-            int vertexBIndex = outsideMeshTriangles[triangleIndex + 1];
-            int vertexCIndex = outsideMeshTriangles[triangleIndex + 2];
+            int vertexAIndex = outsideTriangles[triangleIndex];
+            int vertexBIndex = outsideTriangles[triangleIndex + 1];
+            int vertexCIndex = outsideTriangles[triangleIndex + 2];
 
             Vector3 normal = TriangleNormal(vertexAIndex, vertexBIndex, vertexCIndex);
             
@@ -271,9 +271,9 @@ public class MeshDetails
 
     private Vector3 TriangleNormal(int indexA, int indexB, int indexC)
     {
-        Vector3 vertexA = indexA < 0 ? outsideMeshVertices[-indexA - 1] : vertices[indexA];
-        Vector3 vertexB = indexB < 0 ? outsideMeshVertices[-indexB - 1] : vertices[indexB];
-        Vector3 vertexC = indexC < 0 ? outsideMeshVertices[-indexC - 1] : vertices[indexC];
+        Vector3 vertexA = indexA < 0 ? outsideVertices[-indexA - 1] : vertices[indexA];
+        Vector3 vertexB = indexB < 0 ? outsideVertices[-indexB - 1] : vertices[indexB];
+        Vector3 vertexC = indexC < 0 ? outsideVertices[-indexC - 1] : vertices[indexC];
 
         Vector3 edgeAB = vertexB - vertexA;
         Vector3 edgeAC = vertexC - vertexA;

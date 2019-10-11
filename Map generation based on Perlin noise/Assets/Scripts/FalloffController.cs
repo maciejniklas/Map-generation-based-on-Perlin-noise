@@ -1,19 +1,17 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public static class FalloffController
 {
-    public static float[,] GenerateFalloffArea(int resolution)
+    public static float[,] GenerateFalloffArea(int size)
     {
-        float[,] falloffArea = new float[resolution, resolution];
+        float[,] falloffArea = new float[size, size];
 
-        for(int yIndex = 0; yIndex < resolution; yIndex++)
+        for(int yIndex = 0; yIndex < size; yIndex++)
         {
-            for(int xIndex = 0; xIndex < resolution; xIndex++)
+            for(int xIndex = 0; xIndex < size; xIndex++)
             {
                 Vector2 point = new Vector2(xIndex, yIndex);
-                point /= (float)resolution;
+                point /= size;
                 point *= 2;
                 point -= Vector2.one;
 

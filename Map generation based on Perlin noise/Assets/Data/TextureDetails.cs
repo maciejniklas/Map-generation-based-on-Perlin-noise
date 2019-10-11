@@ -1,18 +1,16 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using System.Linq;
 
 [CreateAssetMenu()]
-public class TextureAsset : UpdatableAsset
+public class TextureDetails : UpdatableAsset
 {
     private const int textureResolution = 512;
     private const TextureFormat textureFormat = TextureFormat.RGB565;
-
     public Region[] regions;
 
     private float minHeight;
     private float maxHeight;
+
     public void AttachToMaterial(Material material)
     {
         material.SetInt("regionsAmount", regions.Length);

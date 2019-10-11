@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class AreasController : MonoBehaviour
@@ -11,9 +10,9 @@ public class AreasController : MonoBehaviour
     public Material material;
     public int colliderLODInedx;
     public LODDetails[] lodDetails;
-    public NoiseAreaSettings noiseAreaSettings;
-    public AreaSettings areaSettings;
-    public TextureAsset textureAsset;
+    public AreaNoiseDetails areaNoiseDetails;
+    public AreaDetails areaDetails;
+    public TextureDetails textureDetails;
 
     private float areaResolution;
     private int visibleAreas;
@@ -25,10 +24,10 @@ public class AreasController : MonoBehaviour
 
     private void Start()
     {
-        textureAsset.AttachToMaterial(material);
-        textureAsset.RefreshHeights(material, noiseAreaSettings.minHeight, noiseAreaSettings.maxHeight);
+        textureDetails.AttachToMaterial(material);
+        textureDetails.RefreshHeights(material, areaNoiseDetails.minHeight, areaNoiseDetails.maxHeight);
 
-        areaResolution = areaSettings.resolution;
+        areaResolution = areaDetails.resolution;
         float viewRange = lodDetails[lodDetails.Length - 1].distance;
         visibleAreas = Mathf.RoundToInt(viewRange / areaResolution);
 
@@ -93,7 +92,7 @@ public class AreasController : MonoBehaviour
                     }
                     else
                     {
-                        Area area = new Area(areaCoords, transform, material, lodDetails, colliderLODInedx, noiseAreaSettings, areaSettings, player);
+                        Area area = new Area(areaCoords, transform, material, lodDetails, colliderLODInedx, areaNoiseDetails, areaDetails, player);
                         areasCollection.Add(areaCoords, area);
                         area.onVisibilityChange += OnAreaVisibilityChange;
                         area.Load();
@@ -107,7 +106,7 @@ public class AreasController : MonoBehaviour
 [System.Serializable]
 public struct LODDetails
 {
-    [Range(0, AreaSettings.availableLODS - 1)] public int lod;
+    [Range(0, AreaDetails.availableLODs - 1)] public int lod;
     public float distance;
 
     public float sqrDistance

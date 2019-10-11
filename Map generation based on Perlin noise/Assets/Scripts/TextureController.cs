@@ -1,35 +1,32 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public static class TextureController
 {
-    public static Texture2D GenerateFromColors(Color[] mapColors, int resolution)
+    public static Texture2D GenerateFromColors(Color[] colors, int resolution)
     {
         Texture2D texture = new Texture2D(resolution, resolution);
         texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;
-        texture.SetPixels(mapColors);
+        texture.SetPixels(colors);
         texture.Apply();
 
         return texture;
     }
 
-    public static Texture2D GenerateFromNoise(NoiseArea noiseArea)
+    public static Texture2D GenerateFromNoise(AreaNoise noiseArea)
     {
-        int resolution = noiseArea.values.GetLength(0);
-        Texture2D texture = new Texture2D(resolution, resolution);
+        int resolution = noiseArea.area.GetLength(0);
 
-        Color[] mapColors = new Color[resolution * resolution];
+        Color[] colors = new Color[resolution * resolution];
 
         for (int yIndex = 0; yIndex < resolution; yIndex++)
         {
             for (int xIndex = 0; xIndex < resolution; xIndex++)
             {
-                mapColors[yIndex * resolution + xIndex] = Color.Lerp(Color.black, Color.white, Mathf.InverseLerp(noiseArea.minValue, noiseArea.maxValue, noiseArea.values[xIndex, yIndex]));
+                colors[yIndex * resolution + xIndex] = Color.Lerp(Color.black, Color.white, Mathf.InverseLerp(noiseArea.minHeight, noiseArea.maxHeight, noiseArea.area[xIndex, yIndex]));
             }
         }
 
-        return GenerateFromColors(mapColors, resolution);
+        return GenerateFromColors(colors, resolution);
     }
 }
