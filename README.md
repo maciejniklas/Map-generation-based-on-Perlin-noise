@@ -1,7 +1,7 @@
 # Map generation based on Perlin noise
 Terrain generator based on Pernil noise. It coud render map with custom settings of terrain structure.
 
-![Project logo](./Map%generation%based%on%Perlin%noise/logo.png)
+![Project logo](./logo.png)
 
 ## Table of contents
 * [General info](#general-info)
