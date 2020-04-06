@@ -21,7 +21,7 @@ Project is: finished
 
 ## Contact
 Created by Maciej Niklas
-maciejniklas12@gmail.com - feel free to contact me!
+kontakt@mniklas.pl - feel free to contact me!
 
 Check out my blog where I'm posting details about my current projects.
-https://maciejniklas.blogspot.com/
+http://www.mniklas.pl/
